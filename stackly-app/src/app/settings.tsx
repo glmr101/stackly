@@ -4,12 +4,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuthStore } from "@/store/useAuthStore";
+import { MaterialIconName } from "@/types";
+
+interface SettingLink {
+  title: string;
+  icon: MaterialIconName;
+}
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const user = useAuthStore((state) => state.user);
 
-  const settingsLinks = [
+  const email = user?.email || "alex.rivera@example.com";
+  const displayName = user?.displayName || email.split("@")[0] || "Alex Rivera";
+
+  const settingsLinks: SettingLink[] = [
     { title: "Account Info", icon: "person" },
     { title: "Preferences", icon: "tune" },
     { title: "Notifications", icon: "notifications" },
@@ -36,17 +47,17 @@ export default function Settings() {
           <View className="flex-row items-center gap-4 bg-surface-container rounded-xl p-card-inner-padding shadow-sm">
             <Image
               source={{
-                uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuA2TjDqjInr7Pcb8Q14CybXC2MROHmVU5UK95XWNiyfl8s4qHBLmvEzPHsvh4Jlc8g25maviIP_TyXJx-8RoV4QOBoWlu1F3LFsXmhwJhb8yhcx1unQW3IS8jgM4VUBVBEibKU7lEeswVpMHgc9uuD17BxSyrltHUekEe5UZP-Z5S7wyu7Y9mA9qgmZGiSIw5tcgNTorr9--xfMxD6pdiSmT3XR6mbjnivR1qnDsrAP5HtBieItY30jJA",
+                uri: user?.photoURL || "https://lh3.googleusercontent.com/aida-public/AB6AXuA2TjDqjInr7Pcb8Q14CybXC2MROHmVU5UK95XWNiyfl8s4qHBLmvEzPHsvh4Jlc8g25maviIP_TyXJx-8RoV4QOBoWlu1F3LFsXmhwJhb8yhcx1unQW3IS8jgM4VUBVBEibKU7lEeswVpMHgc9uuD17BxSyrltHUekEe5UZP-Z5S7wyu7Y9mA9qgmZGiSIw5tcgNTorr9--xfMxD6pdiSmT3XR6mbjnivR1qnDsrAP5HtBieItY30jJA",
               }}
               className="w-16 h-16 rounded-full"
               resizeMode="cover"
             />
             <View className="flex-col flex-1">
               <Text className="text-headline-md font-headline-md text-on-surface" numberOfLines={1}>
-                Alex Rivera
+                {displayName}
               </Text>
               <Text className="text-body-md font-body-md text-on-surface-variant" numberOfLines={1}>
-                alex.rivera@example.com
+                {email}
               </Text>
             </View>
           </View>
@@ -63,7 +74,7 @@ export default function Settings() {
                 }`}
               >
                 <View className="flex-row items-center gap-3">
-                  <MaterialIcons name={link.icon as any} size={24} color="#b2c5ff" />
+                  <MaterialIcons name={link.icon} size={24} color="#b2c5ff" />
                   <Text className="text-body-lg font-body-lg text-on-surface">
                     {link.title}
                   </Text>

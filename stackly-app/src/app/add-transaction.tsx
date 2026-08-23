@@ -4,8 +4,14 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
+import { MaterialIconName } from "@/types";
 
 type TransactionType = "expense" | "income" | "transfer";
+
+interface CategoryOption {
+  name: string;
+  icon: MaterialIconName;
+}
 
 export default function AddTransaction() {
   const insets = useSafeAreaInsets();
@@ -22,7 +28,7 @@ export default function AddTransaction() {
   const [merchant, setMerchant] = useState("");
   const [note, setNote] = useState("");
 
-  const categories = [
+  const categories: CategoryOption[] = [
     { name: "Food", icon: "restaurant" },
     { name: "Shop", icon: "shopping-bag" },
     { name: "Transit", icon: "directions-car" },
@@ -140,7 +146,7 @@ export default function AddTransaction() {
                   onPress={() => setSelectedAccountId(acc.id)}
                 >
                   <MaterialIcons
-                    name={acc.icon as any}
+                    name={acc.icon}
                     size={24}
                     color={isSelected ? "#b2c5ff" : "#c3c6d6"}
                   />
@@ -183,7 +189,7 @@ export default function AddTransaction() {
                     }`}
                   >
                     <MaterialIcons
-                      name={cat.icon as any}
+                      name={cat.icon}
                       size={20}
                       color={isSelected ? "#5c000d" : "#c3c6d6"} // on-tertiary-container vs on-surface-variant
                     />

@@ -40,7 +40,9 @@ export const useAppStore = create<AppState>()(
           const updatedAccounts = state.accounts.map((acc) => {
             if (acc.name === transaction.accountId || acc.id === transaction.accountId) {
               const amountChange =
-                transaction.type === 'expense' ? -transaction.amount : transaction.amount;
+                transaction.type === 'expense' || transaction.type === 'transfer'
+                  ? -transaction.amount
+                  : transaction.amount;
               return { ...acc, balance: acc.balance + amountChange };
             }
             return acc;

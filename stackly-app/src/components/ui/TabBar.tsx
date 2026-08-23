@@ -3,6 +3,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Link } from 'expo-router';
+import { MaterialIconName } from '@/types';
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -27,7 +28,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             }
           };
 
-          const iconName = 
+          const iconName: MaterialIconName = 
             route.name === 'index' ? 'home' : 
             route.name === 'accounts' ? 'account-balance-wallet' : 
             route.name === 'subscriptions' ? 'calendar-today' : 'circle';
@@ -39,7 +40,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               className={`flex items-center justify-center transition-transform active:scale-90`}
             >
               <MaterialIcons
-                name={iconName as any}
+                name={iconName}
                 size={24}
                 color={isFocused ? '#b2c5ff' : '#c3c6d6'} // primary vs on-surface-variant
               />

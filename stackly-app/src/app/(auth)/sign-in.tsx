@@ -26,9 +26,10 @@ export default function SignIn() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // The auth listener in useAuthStore will automatically update state and trigger navigation
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Failed to sign in. Please check your credentials.";
       console.log(e);
-      setError(e.message || "Failed to sign in. Please check your credentials.");
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

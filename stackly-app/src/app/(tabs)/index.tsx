@@ -87,7 +87,7 @@ export default function Home() {
                   }`}
                 >
                   <View className="absolute right-[-10px] bottom-[-10px] opacity-10">
-                    <MaterialIcons name={account.icon as any} size={80} color={isPrimary ? '#002665' : '#c3c6d6'} />
+                    <MaterialIcons name={account.icon} size={80} color={isPrimary ? '#002665' : '#c3c6d6'} />
                   </View>
                   <View>
                     <Text className={`text-label-md font-label-md uppercase ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
@@ -122,7 +122,7 @@ export default function Home() {
               <View key={bill.id} className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
                   <View className="w-10 h-10 bg-surface-container-highest rounded-full flex items-center justify-center">
-                    <MaterialIcons name={bill.icon as any} size={20} color="#c3c6d6" />
+                    <MaterialIcons name={bill.icon} size={20} color="#c3c6d6" />
                   </View>
                   <View className="flex-col">
                     <Text className="text-body-lg font-body-lg text-on-surface">
@@ -171,7 +171,7 @@ export default function Home() {
                 <View key={tx.id} className="flex-row items-center justify-between bg-surface-container p-4 rounded-xl shadow-sm">
                   <View className="flex-row items-center gap-3">
                     <View className={`w-12 h-12 rounded-full flex items-center justify-center ${bgColor}`}>
-                      <MaterialIcons name={tx.categoryIcon as any} size={24} color={iconColor} />
+                      <MaterialIcons name={tx.categoryIcon} size={24} color={iconColor} />
                     </View>
                     <View className="flex-col">
                       <Text className="text-body-lg font-body-lg text-on-surface">

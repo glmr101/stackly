@@ -89,7 +89,7 @@ export default function Subscriptions() {
                   <View className="flex-row gap-3 items-center">
                     <View className="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center">
                       <MaterialIcons
-                        name={sub.icon as any}
+                        name={sub.icon}
                         size={24}
                         color={sub.color}
                       />

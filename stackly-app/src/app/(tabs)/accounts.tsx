@@ -42,7 +42,7 @@ export default function Accounts() {
     if (selectedType === 'Investment') type = 'investment';
 
     // Simple default icons based on type
-    let icon = 'account-balance';
+    let icon: Account['icon'] = 'account-balance';
     if (type === 'cash') icon = 'payments';
     if (type === 'credit') icon = 'credit-card';
     if (type === 'investment') icon = 'trending-up';
@@ -61,6 +61,12 @@ export default function Accounts() {
     setNewBalance("");
     setIsSheetVisible(false);
   };
+
+  const formattedNetWorth = Math.abs(totalNetWorth).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const [whole, decimal] = formattedNetWorth.split(".");
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -86,10 +92,10 @@ export default function Accounts() {
           </Text>
           <View className="flex-row items-baseline gap-1">
             <Text className="font-numeral-xl text-display text-on-surface">
-              ${Math.floor(totalNetWorth).toLocaleString("en-US")}
+              {totalNetWorth < 0 ? `-$${whole}` : `$${whole}`}
             </Text>
             <Text className="font-label-md text-label-md text-secondary">
-              {(totalNetWorth % 1).toFixed(2).substring(1)}
+              .{decimal}
             </Text>
           </View>
 
@@ -147,7 +153,7 @@ export default function Accounts() {
                   <View className="flex-row items-center gap-4">
                     <View className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center">
                       <MaterialIcons
-                        name={account.icon as any}
+                        name={account.icon}
                         size={24}
                         color={isPrimary ? "#b2c5ff" : "#4de082"}
                       />

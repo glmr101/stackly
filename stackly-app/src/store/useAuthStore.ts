@@ -16,7 +16,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
 }));
 
-// Set up the Firebase observer
-onAuthStateChanged(auth, (user) => {
-  useAuthStore.getState().setUser(user);
-});
+// Set up the Firebase observer with error and timeout safety
+try {
+  onAuthStateChanged(auth, (user) => {
+    useAuthStore.getState().setUser(user);
+  });
+} catch {
+  useAuthStore.getState().setLoading(false);
+}
+
+// Fallback timeout to unblock initial loading if Firebase takes too long
+setTimeout(() => {
+  if (useAuthStore.getState().isLoading) {
+    useAuthStore.getState().setLoading(false);
+  }
+}, 2500);
