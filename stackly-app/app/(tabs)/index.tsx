@@ -11,6 +11,20 @@ export default function Home() {
   const transactions = useAppStore((state) => state.transactions);
   const subscriptions = useAppStore((state) => state.subscriptions);
 
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  let incomeThisMonth = 0;
+  let expensesThisMonth = 0;
+
+  transactions.forEach((tx) => {
+    const txDate = new Date(tx.date);
+    if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+      if (tx.type === 'income') incomeThisMonth += tx.amount;
+      if (tx.type === 'expense') expensesThisMonth += tx.amount;
+    }
+  });
+
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
   // Derive upcoming bills from active subscriptions (mocking "due date" logic)
@@ -54,20 +68,33 @@ export default function Home() {
           <Text className="text-numeral-xl font-numeral-xl text-on-surface mt-2 z-10">
             ${totalNetWorth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </Text>
-          <View className="flex-row items-center gap-1 mt-2 z-10 bg-secondary/10 px-2 py-1 rounded-full">
-            <MaterialIcons name="trending-up" size={16} color="#4de082" />
-            <Text className="text-label-md font-label-md text-secondary">
-              +2.4% this month
-            </Text>
+          <View className="flex-row items-center gap-4 mt-4 z-10">
+            <View className="flex-row items-center gap-1 bg-secondary-container/20 px-3 py-1.5 rounded-full">
+              <MaterialIcons name="arrow-downward" size={16} color="#4de082" />
+              <Text className="text-label-md font-label-md text-secondary">
+                ${incomeThisMonth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-1 bg-error-container/20 px-3 py-1.5 rounded-full">
+              <MaterialIcons name="arrow-upward" size={16} color="#ffb4ab" />
+              <Text className="text-label-md font-label-md text-error">
+                ${expensesThisMonth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Accounts Horizontal Scroll */}
         <View className="mb-section-gap">
-          <View className="px-container-padding mb-4">
+          <View className="px-container-padding mb-4 flex-row items-center justify-between">
             <Text className="text-headline-md font-headline-md text-on-background">
               Accounts
             </Text>
+            <Link href="/accounts" asChild>
+              <Pressable hitSlop={10}>
+                <Text className="text-label-md font-label-md text-primary">View all</Text>
+              </Pressable>
+            </Link>
           </View>
           <ScrollView
             horizontal
@@ -80,30 +107,31 @@ export default function Home() {
             {accounts.map((account) => {
               const isPrimary = account.type === 'savings'; // Just to match design colors
               return (
-                <View
-                  key={account.id}
-                  className={`w-[200px] p-4 rounded-xl flex-col justify-between h-32 overflow-hidden shadow-sm ${
-                    isPrimary ? 'bg-primary-container' : 'bg-surface-container-high'
-                  }`}
-                >
-                  <View className="absolute right-[-10px] bottom-[-10px] opacity-10">
-                    <MaterialIcons name={account.icon} size={80} color={isPrimary ? '#002665' : '#c3c6d6'} />
-                  </View>
-                  <View>
-                    <Text className={`text-label-md font-label-md uppercase ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
-                      {account.name}
-                    </Text>
-                    <Text className={`text-headline-lg-mobile font-headline-lg-mobile mt-1 ${isPrimary ? 'text-on-primary-container' : 'text-on-surface'}`}>
-                      ${account.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-1">
-                    <MaterialIcons name="account-balance" size={14} color={isPrimary ? '#002665' : '#c3c6d6'} />
-                    <Text className={`text-label-md font-label-md ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
-                      {account.institution}
-                    </Text>
-                  </View>
-                </View>
+                <Link key={account.id} href="/accounts" asChild>
+                  <Pressable
+                    className={`w-[200px] p-4 rounded-xl flex-col justify-between h-32 overflow-hidden shadow-sm active:opacity-80 ${
+                      isPrimary ? 'bg-primary-container' : 'bg-surface-container-high'
+                    }`}
+                  >
+                    <View className="absolute right-[-10px] bottom-[-10px] opacity-10">
+                      <MaterialIcons name={account.icon} size={80} color={isPrimary ? '#002665' : '#c3c6d6'} />
+                    </View>
+                    <View>
+                      <Text className={`text-label-md font-label-md uppercase ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
+                        {account.name}
+                      </Text>
+                      <Text className={`text-headline-lg-mobile font-headline-lg-mobile mt-1 ${isPrimary ? 'text-on-primary-container' : 'text-on-surface'}`}>
+                        ${account.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-1">
+                      <MaterialIcons name="account-balance" size={14} color={isPrimary ? '#002665' : '#c3c6d6'} />
+                      <Text className={`text-label-md font-label-md ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
+                        {account.institution}
+                      </Text>
+                    </View>
+                  </Pressable>
+                </Link>
               );
             })}
           </ScrollView>
@@ -115,7 +143,11 @@ export default function Home() {
             <Text className="text-headline-md font-headline-md text-on-background">
               Upcoming Bills
             </Text>
-            <Text className="text-label-md font-label-md text-primary">View all</Text>
+            <Link href="/subscriptions" asChild>
+              <Pressable hitSlop={10}>
+                <Text className="text-label-md font-label-md text-primary">View all</Text>
+              </Pressable>
+            </Link>
           </View>
           <View className="bg-surface-container rounded-xl p-card-inner-padding shadow-sm flex-col gap-4">
             {upcomingBills.map((bill) => (
@@ -147,7 +179,11 @@ export default function Home() {
             <Text className="text-headline-md font-headline-md text-on-background">
               Recent Activity
             </Text>
-            <Text className="text-label-md font-label-md text-primary">View all</Text>
+            <Link href="/transactions" asChild>
+              <Pressable hitSlop={10}>
+                <Text className="text-label-md font-label-md text-primary">View all</Text>
+              </Pressable>
+            </Link>
           </View>
           <View className="flex-col gap-4">
             {transactions.slice(0, 5).map((tx) => {
@@ -191,6 +227,7 @@ export default function Home() {
           </View>
         </View>
       </ScrollView>
+
     </View>
   );
 }

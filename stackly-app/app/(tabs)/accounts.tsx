@@ -12,14 +12,6 @@ export default function Accounts() {
   const addAccount = useAppStore((state) => state.addAccount);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isSheetVisible, setIsSheetVisible] = useState(false);
-  
-  // Add Account Form State
-  const [newAccountName, setNewAccountName] = useState("");
-  const [newInstitution, setNewInstitution] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("Bank");
-  const [newBalance, setNewBalance] = useState("");
-
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   const totalLiquid = accounts
     .filter(acc => acc.type === 'checking' || acc.type === 'savings' || acc.type === 'cash')
@@ -32,35 +24,7 @@ export default function Accounts() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleSaveAccount = () => {
-    // Map the UI selected type to the Account model's type enum
-    let type: Account['type'] = 'checking';
-    if (selectedType === 'Bank') type = 'checking';
-    if (selectedType === 'E-Wallet') type = 'checking'; // Can customize further
-    if (selectedType === 'Cash') type = 'cash';
-    if (selectedType === 'Credit Card') type = 'credit';
-    if (selectedType === 'Investment') type = 'investment';
 
-    // Simple default icons based on type
-    let icon: Account['icon'] = 'account-balance';
-    if (type === 'cash') icon = 'payments';
-    if (type === 'credit') icon = 'credit-card';
-    if (type === 'investment') icon = 'trending-up';
-
-    addAccount({
-      name: newAccountName || 'New Account',
-      institution: newInstitution || 'Institution',
-      type,
-      balance: parseFloat(newBalance) || 0,
-      icon,
-    });
-
-    // Reset and close
-    setNewAccountName("");
-    setNewInstitution("");
-    setNewBalance("");
-    setIsSheetVisible(false);
-  };
 
   const formattedNetWorth = Math.abs(totalNetWorth).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -132,12 +96,6 @@ export default function Accounts() {
             <Text className="font-headline-md text-headline-md text-on-surface">
               Your Accounts
             </Text>
-            <Pressable
-              className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center"
-              onPress={() => setIsSheetVisible(true)}
-            >
-              <MaterialIcons name="add" size={18} color="#b2c5ff" />
-            </Pressable>
           </View>
 
           {accounts.map((account) => {
@@ -216,126 +174,6 @@ export default function Accounts() {
         </View>
       </ScrollView>
 
-      {/* Add Account Bottom Sheet */}
-      <Modal
-        visible={isSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsSheetVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
-        >
-          <View className="flex-1 justify-end bg-background/80">
-          <Pressable
-            className="flex-1"
-            onPress={() => setIsSheetVisible(false)}
-          />
-          <View
-            className="bg-surface-container-high rounded-t-[24px] pb-safe"
-            style={{ paddingBottom: insets.bottom || 24, maxHeight: "85%" }}
-          >
-            <View className="p-container-padding">
-              <View className="w-12 h-1.5 bg-surface-variant rounded-full mx-auto mb-6" />
-              <Text className="font-headline-lg text-headline-lg text-on-surface mb-6">
-                Add Account
-              </Text>
-
-              <View className="flex-col gap-5">
-                <View>
-                  <Text className="font-label-md text-label-md text-on-surface-variant mb-2">
-                    Account Name
-                  </Text>
-                  <TextInput
-                    className="w-full bg-surface-container-low text-on-surface font-body-lg p-4 rounded-xl"
-                    placeholder="e.g. Vacation Savings"
-                    placeholderTextColor="#c3c6d680"
-                    value={newAccountName}
-                    onChangeText={setNewAccountName}
-                  />
-                </View>
-
-                <View>
-                  <Text className="font-label-md text-label-md text-on-surface-variant mb-2">
-                    Institution
-                  </Text>
-                  <TextInput
-                    className="w-full bg-surface-container-low text-on-surface font-body-lg p-4 rounded-xl"
-                    placeholder="e.g. Chase, PayPal"
-                    placeholderTextColor="#c3c6d680"
-                    value={newInstitution}
-                    onChangeText={setNewInstitution}
-                  />
-                </View>
-
-                <View>
-                  <Text className="font-label-md text-label-md text-on-surface-variant mb-2">
-                    Type
-                  </Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {["Bank", "E-Wallet", "Cash", "Credit Card", "Investment"].map(
-                      (type) => {
-                        const isSelected = selectedType === type;
-                        return (
-                          <Pressable
-                            key={type}
-                            className={`px-4 py-2 rounded-full ${
-                              isSelected
-                                ? "bg-primary/20"
-                                : "bg-surface-container-low"
-                            }`}
-                            onPress={() => setSelectedType(type)}
-                          >
-                            <Text
-                              className={`font-label-md ${
-                                isSelected
-                                  ? "text-primary"
-                                  : "text-on-surface-variant"
-                              }`}
-                            >
-                              {type}
-                            </Text>
-                          </Pressable>
-                        );
-                      }
-                    )}
-                  </View>
-                </View>
-
-                <View>
-                  <Text className="font-label-md text-label-md text-on-surface-variant mb-2">
-                    Starting Balance
-                  </Text>
-                  <View className="relative flex-row items-center bg-surface-container-low rounded-xl pl-4 pr-4">
-                    <Text className="font-body-lg text-on-surface-variant">
-                      $
-                    </Text>
-                    <TextInput
-                      className="flex-1 text-on-surface font-body-lg p-4"
-                      placeholder="0.00"
-                      placeholderTextColor="#c3c6d680"
-                      keyboardType="decimal-pad"
-                      value={newBalance}
-                      onChangeText={setNewBalance}
-                    />
-                  </View>
-                </View>
-
-                <Pressable
-                  className="w-full bg-primary py-4 rounded-xl mt-4 items-center justify-center active:bg-primary-container"
-                  onPress={handleSaveAccount}
-                >
-                  <Text className="text-on-primary font-headline-md text-headline-md">
-                    Save Account
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }

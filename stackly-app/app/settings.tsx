@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useAppStore } from "@/store/useAppStore";
 import { MaterialIconName } from "@/types";
 
 interface SettingLink {
@@ -16,6 +17,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const reset = useAppStore((state) => state.reset);
 
   const email = user?.email || "alex.rivera@example.com";
   const displayName = user?.displayName || email.split("@")[0] || "Alex Rivera";
@@ -117,6 +119,7 @@ export default function Settings() {
             <Pressable 
               className="w-full py-3.5 px-4 bg-error-container rounded-lg flex-row items-center justify-center gap-2 active:bg-error shadow-sm"
               onPress={() => {
+                reset();
                 signOut(auth).catch(console.error);
               }}
             >

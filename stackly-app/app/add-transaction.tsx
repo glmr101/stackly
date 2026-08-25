@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -61,6 +61,10 @@ export default function AddTransaction() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+      >
       {/* Header */}
       <View className="h-16 px-4 flex-row items-center gap-4">
         <Pressable
@@ -83,15 +87,13 @@ export default function AddTransaction() {
             return (
               <Pressable
                 key={tValue}
-                className={`flex-1 py-3 px-4 rounded-[28px] ${
-                  isSelected ? "bg-primary" : ""
-                }`}
+                className="flex-1 py-3 px-4 rounded-[28px]"
+                style={{ backgroundColor: isSelected ? "#b2c5ff" : "transparent" }}
                 onPress={() => setType(tValue)}
               >
                 <Text
-                  className={`font-headline-md text-body-md text-center ${
-                    isSelected ? "text-on-primary" : "text-on-surface-variant"
-                  }`}
+                  className="font-headline-md text-body-md text-center"
+                  style={{ color: isSelected ? "#002c72" : "#c3c6d6" }}
                 >
                   {tLabel}
                 </Text>
@@ -131,29 +133,28 @@ export default function AddTransaction() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingRight: 20 }}
+            contentContainerStyle={{ paddingRight: 20 }}
           >
             {storeAccounts.map((acc) => {
               const isSelected = selectedAccountId === acc.id;
               return (
                 <Pressable
                   key={acc.id}
-                  className={`rounded-xl px-5 py-4 flex-col items-start gap-2 ${
-                    isSelected
-                      ? "bg-primary/10 border border-primary shadow-sm"
-                      : "bg-surface-container-low"
-                  }`}
+                  className="mr-3 rounded-xl px-5 py-4 flex-col items-start gap-2 border border-solid shadow-sm"
+                  style={{
+                    backgroundColor: isSelected ? "rgba(178, 197, 255, 0.1)" : "#171b26", // primary/10 or surface-container-low
+                    borderColor: isSelected ? "#b2c5ff" : "transparent" // primary or transparent
+                  }}
                   onPress={() => setSelectedAccountId(acc.id)}
                 >
                   <MaterialIcons
-                    name={acc.icon}
+                    name={acc.icon as any}
                     size={24}
                     color={isSelected ? "#b2c5ff" : "#c3c6d6"}
                   />
                   <Text
-                    className={`text-body-md font-headline-md ${
-                      isSelected ? "text-primary" : "text-on-surface"
-                    }`}
+                    className="text-body-md font-headline-md"
+                    style={{ color: isSelected ? "#b2c5ff" : "#dfe2f1" }} // primary or on-surface
                   >
                     {acc.name}
                   </Text>
@@ -174,19 +175,18 @@ export default function AddTransaction() {
               return (
                 <Pressable
                   key={cat.name}
-                  className={`flex-col items-center justify-center gap-2 w-[22%] aspect-square rounded-2xl ${
-                    isSelected
-                      ? "bg-tertiary-container/20 border border-tertiary-container/30"
-                      : "bg-surface-container-low"
-                  }`}
+                  className="flex-col items-center justify-center gap-2 w-[22%] aspect-square rounded-2xl border border-solid"
+                  style={{
+                    backgroundColor: isSelected ? "rgba(234, 103, 103, 0.2)" : "#171b26", // tertiary-container/20 or surface-container-low
+                    borderColor: isSelected ? "rgba(234, 103, 103, 0.3)" : "transparent"
+                  }}
                   onPress={() => setSelectedCategory(cat.name)}
                 >
                   <View
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      isSelected
-                        ? "bg-tertiary-container"
-                        : "bg-surface-container-high"
-                    }`}
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: isSelected ? "#ea6767" : "#262a35" // tertiary-container or surface-container-high
+                    }}
                   >
                     <MaterialIcons
                       name={cat.icon}
@@ -195,9 +195,8 @@ export default function AddTransaction() {
                     />
                   </View>
                   <Text
-                    className={`text-label-md ${
-                      isSelected ? "text-tertiary-container" : "text-on-surface-variant"
-                    }`}
+                    className="text-label-md"
+                    style={{ color: isSelected ? "#ea6767" : "#c3c6d6" }} // tertiary-container or on-surface-variant
                   >
                     {cat.name}
                   </Text>
@@ -252,6 +251,7 @@ export default function AddTransaction() {
           </Pressable>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

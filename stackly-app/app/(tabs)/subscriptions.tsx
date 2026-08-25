@@ -140,7 +140,7 @@ export default function Subscriptions() {
         <View className="px-container-padding py-8 flex-col items-center justify-center opacity-60">
           <MaterialIcons name="add-circle" size={40} color="#c3c6d6" />
           <Text className="font-body-md text-body-md text-on-surface-variant text-center mt-2">
-            Tracking all your subscriptions.{"\n"}You're in control.
+            Tap the + button to add a subscription.
           </Text>
         </View>
       </ScrollView>

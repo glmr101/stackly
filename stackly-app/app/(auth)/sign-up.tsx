@@ -1,22 +1,31 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
-export default function SignIn() {
+export default function SignUp() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSignIn = async () => {
+  const google = useGoogleAuth();
+
+  const handleSignUp = async () => {
     if (!email || !password) {
       setError("Please fill in both fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
       return;
     }
 
@@ -24,16 +33,19 @@ export default function SignIn() {
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
       // The auth listener in useAuthStore will automatically update state and trigger navigation
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : "Failed to sign in. Please check your credentials.";
+      const errorMessage = e instanceof Error ? e.message : "Failed to create account.";
       console.log(e);
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  const isLoading = loading || google.loading;
+  const displayError = error || google.error;
 
   return (
     <KeyboardAvoidingView 
@@ -42,15 +54,23 @@ export default function SignIn() {
     >
       <View className="flex-1 px-container-padding justify-center" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
         
-        <View className="mb-10 flex-col items-center">
+        <Pressable
+          className="w-10 h-10 flex items-center justify-center rounded-full active:bg-surface-container absolute left-4 z-10"
+          style={{ top: insets.top + 16 }}
+          onPress={() => router.back()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#dfe2f1" />
+        </Pressable>
+
+        <View className="mb-10 flex-col items-center mt-12">
           <View className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mb-6">
-            <MaterialIcons name="account-balance-wallet" size={32} color="#b2c5ff" />
+            <MaterialIcons name="person-add" size={32} color="#b2c5ff" />
           </View>
           <Text className="text-display font-display text-on-surface mb-2">
-            Stackly
+            Create Account
           </Text>
           <Text className="text-body-lg font-body-lg text-on-surface-variant text-center">
-            Sign in to manage your finances seamlessly.
+            Join Stackly to master your money.
           </Text>
         </View>
 
@@ -69,7 +89,7 @@ export default function SignIn() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                editable={!loading}
+                editable={!isLoading}
               />
             </View>
           </View>
@@ -87,42 +107,69 @@ export default function SignIn() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                editable={!loading}
+                editable={!isLoading}
               />
             </View>
           </View>
 
-          {error ? (
+          {displayError ? (
             <View className="bg-error-container/20 p-3 rounded-lg border border-error-container">
-              <Text className="text-error font-body-sm">{error}</Text>
+              <Text className="text-error font-body-sm">{displayError}</Text>
             </View>
           ) : null}
 
           <Pressable
             className={`w-full py-4 rounded-xl items-center justify-center mt-2 ${
-              loading ? "bg-surface-variant" : "bg-primary active:bg-primary-container"
+              isLoading ? "bg-surface-variant" : "bg-primary active:bg-primary-container"
             }`}
-            onPress={handleSignIn}
-            disabled={loading}
+            onPress={handleSignUp}
+            disabled={isLoading}
           >
             {loading ? (
               <ActivityIndicator color="#002c72" />
             ) : (
               <Text className="text-on-primary text-headline-md font-headline-md">
-                Sign In
+                Create Account
               </Text>
+            )}
+          </Pressable>
+
+          {/* Divider */}
+          <View className="flex-row items-center gap-4 my-1">
+            <View className="flex-1 h-px bg-outline/30" />
+            <Text className="text-label-md font-label-md text-outline">or</Text>
+            <View className="flex-1 h-px bg-outline/30" />
+          </View>
+
+          {/* Google Sign-In */}
+          <Pressable
+            className={`w-full py-4 rounded-xl items-center justify-center flex-row gap-3 border border-outline/30 ${
+              isLoading || !google.ready ? "opacity-50" : "bg-surface-container active:bg-surface-container-high"
+            }`}
+            onPress={google.signInWithGoogle}
+            disabled={isLoading || !google.ready}
+          >
+            {google.loading ? (
+              <ActivityIndicator color="#b2c5ff" />
+            ) : (
+              <>
+                <Text className="text-xl font-bold" style={{ color: "#4285F4" }}>G</Text>
+                <Text className="text-on-surface text-body-lg font-body-lg">
+                  Continue with Google
+                </Text>
+              </>
             )}
           </Pressable>
         </View>
 
         <View className="mt-8 flex-row items-center justify-center gap-2">
           <Text className="text-body-md font-body-md text-on-surface-variant">
-            Don't have an account?
+            Already have an account?
           </Text>
-          <Link href="/(auth)/sign-up" asChild>
+          <Link href="/(auth)/sign-in" asChild>
             <Pressable hitSlop={10}>
               <Text className="text-primary font-headline-md text-body-md">
-                Sign Up
+                Sign In
               </Text>
             </Pressable>
           </Link>

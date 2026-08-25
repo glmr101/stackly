@@ -10,7 +10,9 @@ interface AppState {
   subscriptions: Subscription[];
   addAccount: (account: Omit<Account, 'id'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addSubscription: (subscription: Omit<Subscription, 'id'>) => void;
   toggleSubscription: (id: string) => void;
+  reset: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -54,12 +56,27 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
+      addSubscription: (subscription) =>
+        set((state) => ({
+          subscriptions: [
+            ...state.subscriptions,
+            { ...subscription, id: `s${Date.now()}` },
+          ],
+        })),
+
       toggleSubscription: (id) =>
         set((state) => ({
           subscriptions: state.subscriptions.map((sub) =>
             sub.id === id ? { ...sub, active: !sub.active } : sub
           ),
         })),
+
+      reset: () =>
+        set({
+          accounts: [],
+          transactions: [],
+          subscriptions: [],
+        }),
     }),
     {
       name: 'stackly-storage', // unique name

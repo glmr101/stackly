@@ -8,6 +8,14 @@ import { MaterialIconName } from '@/types';
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
+  const currentRouteName = state.routes[state.index].name;
+  let fabHref = "/add-transaction";
+  if (currentRouteName === "accounts") {
+    fabHref = "/add-account";
+  } else if (currentRouteName === "subscriptions") {
+    fabHref = "/add-subscription";
+  }
+
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || 24 }]}>
       {/* Pill-shaped Dock */}
@@ -50,7 +58,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       </View>
       
       {/* Separate FAB */}
-      <Link href="/add-transaction" asChild>
+      <Link href={fabHref as any} asChild>
         <Pressable className="w-14 h-14 bg-surface-container-high rounded-[18px] shadow-lg flex items-center justify-center active:scale-95 border border-outline-variant/20 ml-4">
           <MaterialIcons name="add" size={30} color="#b2c5ff" />
         </Pressable>
