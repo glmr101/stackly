@@ -26,6 +26,12 @@ export default function TabLayout() {
           title: 'Subscriptions',
         }}
       />
+      <Tabs.Screen
+        name="budgets"
+        options={{
+          title: 'Budgets',
+        }}
+      />
     </Tabs>
   );
 }

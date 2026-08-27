@@ -1,17 +1,27 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Account, Transaction, Subscription } from '@/types';
-import { MOCK_ACCOUNTS, MOCK_TRANSACTIONS, MOCK_SUBSCRIPTIONS } from '@/data/mocks';
+import { Account, Transaction, Subscription, Category, BudgetGoal, SavingsGoal } from '@/types';
+import { MOCK_ACCOUNTS, MOCK_TRANSACTIONS, MOCK_SUBSCRIPTIONS, MOCK_CATEGORIES, MOCK_BUDGET_GOALS, MOCK_SAVINGS_GOALS } from '@/data/mocks';
 
 interface AppState {
   accounts: Account[];
   transactions: Transaction[];
   subscriptions: Subscription[];
+  categories: Category[];
+  budgetGoals: BudgetGoal[];
+  savingsGoals: SavingsGoal[];
+
   addAccount: (account: Omit<Account, 'id'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   addSubscription: (subscription: Omit<Subscription, 'id'>) => void;
   toggleSubscription: (id: string) => void;
+  postSubscription: (id: string, accountId: string) => void;
+
+  setBudgetGoal: (goal: Omit<BudgetGoal, 'id'> | BudgetGoal) => void;
+  addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
+  addSavingsContribution: (id: string, amount: number) => void;
+
   reset: () => void;
 }
 
@@ -22,6 +32,9 @@ export const useAppStore = create<AppState>()(
       accounts: MOCK_ACCOUNTS,
       transactions: MOCK_TRANSACTIONS,
       subscriptions: MOCK_SUBSCRIPTIONS,
+      categories: MOCK_CATEGORIES,
+      budgetGoals: MOCK_BUDGET_GOALS,
+      savingsGoals: MOCK_SAVINGS_GOALS,
 
       addAccount: (account) =>
         set((state) => ({
@@ -40,14 +53,23 @@ export const useAppStore = create<AppState>()(
 
           // Update the balance of the associated account
           const updatedAccounts = state.accounts.map((acc) => {
-            if (acc.name === transaction.accountId || acc.id === transaction.accountId) {
-              const amountChange =
-                transaction.type === 'expense' || transaction.type === 'transfer'
-                  ? -transaction.amount
-                  : transaction.amount;
-              return { ...acc, balance: acc.balance + amountChange };
+            let balance = acc.balance;
+
+            // Handle from account (expense or transfer sender)
+            if (acc.id === transaction.accountId) {
+              if (transaction.type === 'expense' || transaction.type === 'transfer') {
+                balance -= transaction.amount;
+              } else if (transaction.type === 'income') {
+                balance += transaction.amount;
+              }
             }
-            return acc;
+
+            // Handle to account (transfer recipient)
+            if (transaction.type === 'transfer' && transaction.destinationAccountId && acc.id === transaction.destinationAccountId) {
+              balance += transaction.amount;
+            }
+
+            return { ...acc, balance };
           });
 
           return {
@@ -71,11 +93,81 @@ export const useAppStore = create<AppState>()(
           ),
         })),
 
+      postSubscription: (id, accountId) =>
+        set((state) => {
+          const subscription = state.subscriptions.find(s => s.id === id);
+          if (!subscription) return state;
+
+          const newTransaction: Transaction = {
+            id: `t${Date.now()}`,
+            type: 'expense',
+            amount: subscription.amount,
+            payee: subscription.name,
+            categoryId: subscription.categoryId,
+            date: new Date().toISOString(),
+            accountId: accountId,
+          };
+
+          const updatedAccounts = state.accounts.map((acc) => {
+            if (acc.id === accountId) {
+              return { ...acc, balance: acc.balance - subscription.amount };
+            }
+            return acc;
+          });
+
+          const nextDate = new Date(subscription.nextChargeDate);
+          if (subscription.billingCycle === 'monthly') {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+          } else {
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+          }
+
+          const updatedSubscriptions = state.subscriptions.map(s => 
+            s.id === id ? { ...s, nextChargeDate: nextDate.toISOString() } : s
+          );
+
+          return {
+            transactions: [newTransaction, ...state.transactions],
+            accounts: updatedAccounts,
+            subscriptions: updatedSubscriptions,
+          };
+        }),
+
+      setBudgetGoal: (goal) => 
+        set((state) => {
+          const exists = state.budgetGoals.find(bg => bg.categoryId === goal.categoryId);
+          if (exists) {
+            return {
+              budgetGoals: state.budgetGoals.map(bg => 
+                bg.categoryId === goal.categoryId ? { ...bg, monthlyLimit: goal.monthlyLimit } : bg
+              )
+            };
+          }
+          return {
+            budgetGoals: [...state.budgetGoals, { ...goal, id: `bg${Date.now()}` } as BudgetGoal]
+          };
+        }),
+
+      addSavingsGoal: (goal) =>
+        set((state) => ({
+          savingsGoals: [...state.savingsGoals, { ...goal, id: `sg${Date.now()}` }]
+        })),
+
+      addSavingsContribution: (id, amount) =>
+        set((state) => ({
+          savingsGoals: state.savingsGoals.map(sg =>
+            sg.id === id ? { ...sg, currentAmount: sg.currentAmount + amount } : sg
+          )
+        })),
+
       reset: () =>
         set({
           accounts: [],
           transactions: [],
           subscriptions: [],
+          categories: MOCK_CATEGORIES,
+          budgetGoals: [],
+          savingsGoals: [],
         }),
     }),
     {

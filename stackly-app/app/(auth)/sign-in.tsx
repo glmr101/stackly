@@ -1,15 +1,25 @@
-import { useState } from "react";
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 import { Link } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { ScaleButton } from "@/components/ui/ScaleButton";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 export default function SignIn() {
   const insets = useSafeAreaInsets();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,7 +29,7 @@ export default function SignIn() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      setError("Please fill in both fields");
+      setError("Please fill in both email and password.");
       return;
     }
 
@@ -27,11 +37,12 @@ export default function SignIn() {
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // The auth listener in useAuthStore will automatically update state and trigger navigation
+      await signInWithEmailAndPassword(auth, email.trim(), password);
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : "Failed to sign in. Please check your credentials.";
-      console.log(e);
+      const errorMessage =
+        e instanceof Error
+          ? e.message
+          : "Failed to sign in. Please check your credentials.";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -42,35 +53,56 @@ export default function SignIn() {
   const displayError = error || google.error;
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-background"
     >
-      <View className="flex-1 px-container-padding justify-center" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-        
-        <View className="mb-10 flex-col items-center">
-          <View className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mb-6">
-            <MaterialIcons name="account-balance-wallet" size={32} color="#b2c5ff" />
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: 24,
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 20,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Brand Header */}
+        <Animated.View
+          entering={FadeInDown.duration(400).springify()}
+          className="mb-8 items-center"
+        >
+          <View className="w-16 h-16 bg-primary/15 border border-primary/30 rounded-[22px] items-center justify-center mb-4 shadow-lg">
+            <MaterialIcons
+              name="account-balance-wallet"
+              size={32}
+              color="#B2C5FF"
+            />
           </View>
-          <Text className="text-display font-display text-on-surface mb-2">
+          <Text className="text-3xl font-extrabold text-on-surface tracking-tight mb-1">
             Stackly
           </Text>
-          <Text className="text-body-lg font-body-lg text-on-surface-variant text-center">
-            Sign in to manage your finances seamlessly.
+          <Text className="text-sm font-medium text-on-surface-variant text-center px-4">
+            Master all your personal finances in one place.
           </Text>
-        </View>
+        </Animated.View>
 
-        <View className="flex-col gap-5">
+        {/* Input Fields */}
+        <Animated.View
+          entering={FadeInDown.delay(100).springify()}
+          className="flex-col gap-4"
+        >
           <View>
-            <Text className="font-label-md text-label-md text-on-surface-variant mb-2">
+            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 px-1">
               Email Address
             </Text>
-            <View className="bg-surface-container-low rounded-xl px-4 flex-row items-center gap-3">
-              <MaterialIcons name="email" size={20} color="#c3c6d6" />
+            <View className="bg-surface-container rounded-2xl px-4 flex-row items-center gap-3 border border-outline-variant/30">
+              <MaterialIcons name="email" size={20} color="#C3C6D6" />
               <TextInput
-                className="flex-1 text-on-surface text-body-lg h-14"
+                className="flex-1 text-on-surface text-sm h-13 py-3"
                 placeholder="you@example.com"
-                placeholderTextColor="#c3c6d680"
+                placeholderTextColor="#C3C6D680"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -81,15 +113,15 @@ export default function SignIn() {
           </View>
 
           <View>
-            <Text className="font-label-md text-label-md text-on-surface-variant mb-2">
+            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 px-1">
               Password
             </Text>
-            <View className="bg-surface-container-low rounded-xl px-4 flex-row items-center gap-3">
-              <MaterialIcons name="lock" size={20} color="#c3c6d6" />
+            <View className="bg-surface-container rounded-2xl px-4 flex-row items-center gap-3 border border-outline-variant/30">
+              <MaterialIcons name="lock" size={20} color="#C3C6D6" />
               <TextInput
-                className="flex-1 text-on-surface text-body-lg h-14"
+                className="flex-1 text-on-surface text-sm h-13 py-3"
                 placeholder="••••••••"
-                placeholderTextColor="#c3c6d680"
+                placeholderTextColor="#C3C6D680"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -99,68 +131,81 @@ export default function SignIn() {
           </View>
 
           {displayError ? (
-            <View className="bg-error-container/20 p-3 rounded-lg border border-error-container">
-              <Text className="text-error font-body-sm">{displayError}</Text>
+            <View className="bg-error-container/30 p-3.5 rounded-xl border border-error/30">
+              <Text className="text-error text-xs font-medium leading-relaxed">
+                {displayError}
+              </Text>
             </View>
           ) : null}
 
-          <Pressable
-            className={`w-full py-4 rounded-xl items-center justify-center mt-2 ${
-              isLoading ? "bg-surface-variant" : "bg-primary active:bg-primary-container"
+          {/* Sign In Button */}
+          <ScaleButton
+            activeScale={0.95}
+            className={`w-full py-4 rounded-2xl items-center justify-center mt-2 shadow-lg ${
+              isLoading ? "bg-surface-variant" : "bg-primary"
             }`}
             onPress={handleSignIn}
             disabled={isLoading}
           >
             {loading ? (
-              <ActivityIndicator color="#002c72" />
+              <ActivityIndicator color="#002C72" />
             ) : (
-              <Text className="text-on-primary text-headline-md font-headline-md">
+              <Text className="text-on-primary text-base font-extrabold">
                 Sign In
               </Text>
             )}
-          </Pressable>
+          </ScaleButton>
 
           {/* Divider */}
-          <View className="flex-row items-center gap-4 my-1">
-            <View className="flex-1 h-px bg-outline/30" />
-            <Text className="text-label-md font-label-md text-outline">or</Text>
-            <View className="flex-1 h-px bg-outline/30" />
+          <View className="flex-row items-center gap-4 my-2">
+            <View className="flex-1 h-px bg-outline-variant/30" />
+            <Text className="text-xs font-semibold text-on-surface-variant">
+              or
+            </Text>
+            <View className="flex-1 h-px bg-outline-variant/30" />
           </View>
 
           {/* Google Sign-In */}
-          <Pressable
-            className={`w-full py-4 rounded-xl items-center justify-center flex-row gap-3 border border-outline/30 ${
-              isLoading || !google.ready ? "opacity-50" : "bg-surface-container active:bg-surface-container-high"
+          <ScaleButton
+            activeScale={0.96}
+            className={`w-full py-3.5 rounded-2xl items-center justify-center flex-row gap-3 border border-outline-variant/30 bg-surface-container ${
+              isLoading || !google.ready ? "opacity-50" : ""
             }`}
             onPress={google.signInWithGoogle}
             disabled={isLoading || !google.ready}
           >
             {google.loading ? (
-              <ActivityIndicator color="#b2c5ff" />
+              <ActivityIndicator color="#B2C5FF" />
             ) : (
               <>
-                <Text className="text-xl font-bold" style={{ color: "#4285F4" }}>G</Text>
-                <Text className="text-on-surface text-body-lg font-body-lg">
+                <Text
+                  className="text-lg font-bold"
+                  style={{ color: "#4285F4" }}
+                >
+                  G
+                </Text>
+                <Text className="text-on-surface text-sm font-bold">
                   Continue with Google
                 </Text>
               </>
             )}
-          </Pressable>
-        </View>
+          </ScaleButton>
+        </Animated.View>
 
+        {/* Footer Link */}
         <View className="mt-8 flex-row items-center justify-center gap-2">
-          <Text className="text-body-md font-body-md text-on-surface-variant">
+          <Text className="text-xs font-medium text-on-surface-variant">
             Don't have an account?
           </Text>
           <Link href="/(auth)/sign-up" asChild>
-            <Pressable hitSlop={10}>
-              <Text className="text-primary font-headline-md text-body-md">
-                Sign Up
+            <ScaleButton activeScale={0.92} hitSlop={10}>
+              <Text className="text-primary font-bold text-xs">
+                Create Account
               </Text>
-            </Pressable>
+            </ScaleButton>
           </Link>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

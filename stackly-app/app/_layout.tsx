@@ -3,6 +3,7 @@ import "../global.css";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useNavigationContainerRef } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -41,15 +42,77 @@ export default function RootLayout() {
   }, [isLoading]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="add-transaction" options={{ presentation: "modal" }} />
-      <Stack.Screen name="add-account" options={{ presentation: "modal" }} />
-      <Stack.Screen name="add-subscription" options={{ presentation: "modal" }} />
-      <Stack.Screen name="settings" options={{ presentation: "modal" }} />
-      <Stack.Screen name="transactions" />
-    </Stack>
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+          animationDuration: 260,
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: "#090B10" },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen
+          name="(auth)"
+          options={{
+            animation: "fade",
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            animation: "fade",
+            animationDuration: 220,
+          }}
+        />
+        <Stack.Screen
+          name="add-transaction"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="add-account"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="add-subscription"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="transactions"
+          options={{
+            animation: "slide_from_right",
+            animationDuration: 260,
+            gestureEnabled: true,
+          }}
+        />
+      </Stack>
+    </>
   );
 }

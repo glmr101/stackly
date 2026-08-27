@@ -1,256 +1,364 @@
-import { useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
-import { MaterialIconName } from "@/types";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { ScaleButton } from "@/components/ui/ScaleButton";
 
 type TransactionType = "expense" | "income" | "transfer";
-
-interface CategoryOption {
-  name: string;
-  icon: MaterialIconName;
-}
 
 export default function AddTransaction() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const storeAccounts = useAppStore((state) => state.accounts);
+  const storeCategories = useAppStore((state) => state.categories);
   const addTransaction = useAppStore((state) => state.addTransaction);
 
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
-  // Select first account by default if available
-  const [selectedAccountId, setSelectedAccountId] = useState(storeAccounts[0]?.id || "");
-  const [selectedCategory, setSelectedCategory] = useState("Food");
+  const [selectedAccountId, setSelectedAccountId] = useState(
+    storeAccounts[0]?.id || ""
+  );
+  const [selectedDestinationAccountId, setSelectedDestinationAccountId] =
+    useState(
+      storeAccounts.length > 1
+        ? storeAccounts[1]?.id
+        : storeAccounts[0]?.id || ""
+    );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null
+  );
   const [merchant, setMerchant] = useState("");
   const [note, setNote] = useState("");
 
-  const categories: CategoryOption[] = [
-    { name: "Food", icon: "restaurant" },
-    { name: "Shop", icon: "shopping-bag" },
-    { name: "Transit", icon: "directions-car" },
-    { name: "Income", icon: "payments" },
-    { name: "More", icon: "more-horiz" },
-  ];
+  const availableCategories =
+    type === "transfer"
+      ? []
+      : storeCategories.filter((c) => c.type === type);
+
+  const handleAddPreset = (val: number) => {
+    const current = parseFloat(amount) || 0;
+    setAmount((current + val).toFixed(current % 1 === 0 ? 0 : 2));
+  };
 
   const handleSave = () => {
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || !selectedAccountId) {
-      // Very basic validation
+    if (isNaN(parsedAmount) || parsedAmount <= 0 || !selectedAccountId) {
       return;
     }
 
-    const cat = categories.find(c => c.name === selectedCategory);
-    
+    if (type === "transfer" && !selectedDestinationAccountId) {
+      return;
+    }
+
     addTransaction({
       type,
       amount: parsedAmount,
       accountId: selectedAccountId,
-      category: selectedCategory,
-      categoryIcon: cat?.icon || 'category',
-      payee: merchant || 'Unknown Merchant',
-      note,
+      destinationAccountId:
+        type === "transfer" ? selectedDestinationAccountId : undefined,
+      categoryId: selectedCategoryId || undefined,
+      payee:
+        merchant.trim() ||
+        (type === "transfer" ? "Transfer" : "Quick Transaction"),
+      note: note.trim(),
       date: new Date().toISOString(),
     });
 
     router.back();
   };
 
+  const segmentOptions = [
+    { value: "expense" as const, label: "Expense" },
+    { value: "income" as const, label: "Income" },
+    { value: "transfer" as const, label: "Transfer" },
+  ];
+
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-      {/* Header */}
-      <View className="h-16 px-4 flex-row items-center gap-4">
-        <Pressable
-          className="w-10 h-10 flex items-center justify-center rounded-full active:bg-surface-container"
-          onPress={() => router.back()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#dfe2f1" />
-        </Pressable>
-        <Text className="font-headline-md text-headline-md text-on-surface">
-          Add Transaction
-        </Text>
-      </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        {/* Segmented Control */}
-        <View className="bg-surface-container-low rounded-[32px] p-1 mx-4 mt-4 flex-row items-center justify-between mb-8 shadow-sm">
-          {["Expense", "Income", "Transfer"].map((tLabel) => {
-            const tValue = tLabel.toLowerCase() as TransactionType;
-            const isSelected = type === tValue;
-            return (
-              <Pressable
-                key={tValue}
-                className="flex-1 py-3 px-4 rounded-[28px]"
-                style={{ backgroundColor: isSelected ? "#b2c5ff" : "transparent" }}
-                onPress={() => setType(tValue)}
-              >
-                <Text
-                  className="font-headline-md text-body-md text-center"
-                  style={{ color: isSelected ? "#002c72" : "#c3c6d6" }}
-                >
-                  {tLabel}
-                </Text>
-              </Pressable>
-            );
-          })}
+        {/* Header */}
+        <View className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
+          <View className="flex-row items-center gap-3">
+            <ScaleButton
+              activeScale={0.88}
+              className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 items-center justify-center shadow-sm"
+              onPress={() => router.back()}
+            >
+              <MaterialIcons name="close" size={22} color="#DFE2F1" />
+            </ScaleButton>
+            <Text className="text-lg font-bold text-on-surface tracking-tight">
+              Log Transaction
+            </Text>
+          </View>
         </View>
 
-        {/* Amount */}
-        <View className="px-6 mb-10 flex-col items-center">
-          <Text className="text-on-surface-variant text-label-md uppercase tracking-wider mb-2 opacity-80">
-            Amount
-          </Text>
-          <View className="flex-row items-center justify-center w-full relative">
-            <Text className="text-on-surface-variant text-headline-lg absolute left-4 z-10">
-              $
-            </Text>
-            <TextInput
-              className="w-full text-center text-display text-on-surface font-numeral-xl p-4"
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor="#c3c6d64d"
-              value={amount}
-              onChangeText={setAmount}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 50 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Segmented Control */}
+          <View className="px-5 mt-4 mb-6">
+            <SegmentedControl<TransactionType>
+              options={segmentOptions}
+              selectedValue={type}
+              onChange={(val) => {
+                setType(val);
+                setSelectedCategoryId(null);
+              }}
+              activePillColor={
+                type === "income"
+                  ? "#4DE082"
+                  : type === "expense"
+                  ? "#FFB4AB"
+                  : "#B2C5FF"
+              }
+              activeTextColor={type === "income" ? "#003919" : "#002C72"}
             />
           </View>
-          <View className="h-[2px] w-32 bg-primary/20 rounded-full mt-2 overflow-hidden">
-            <View className="h-full w-full bg-primary rounded-full scale-x-50" />
-          </View>
-        </View>
 
-        {/* Account Selector */}
-        <View className="px-4 mb-8">
-          <Text className="text-on-surface text-label-md uppercase tracking-wider mb-4 px-2 opacity-80">
-            Account
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: 20 }}
-          >
-            {storeAccounts.map((acc) => {
-              const isSelected = selectedAccountId === acc.id;
-              return (
-                <Pressable
-                  key={acc.id}
-                  className="mr-3 rounded-xl px-5 py-4 flex-col items-start gap-2 border border-solid shadow-sm"
-                  style={{
-                    backgroundColor: isSelected ? "rgba(178, 197, 255, 0.1)" : "#171b26", // primary/10 or surface-container-low
-                    borderColor: isSelected ? "#b2c5ff" : "transparent" // primary or transparent
-                  }}
-                  onPress={() => setSelectedAccountId(acc.id)}
+          {/* Amount Hero Input */}
+          <View className="mx-5 mb-6 p-6 rounded-[28px] bg-surface-container border border-outline-variant/30 items-center">
+            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
+              Amount
+            </Text>
+
+            <View className="flex-row items-center justify-center w-full my-2">
+              <Text className="text-3xl font-extrabold text-on-surface-variant mr-1">
+                $
+              </Text>
+              <TextInput
+                className="text-4xl font-extrabold text-on-surface text-center min-w-[120px] p-0"
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor="#C3C6D650"
+                value={amount}
+                onChangeText={setAmount}
+                autoFocus={true}
+              />
+            </View>
+
+            {/* Quick Amount Presets */}
+            <View className="flex-row gap-2 mt-4 pt-4 border-t border-white/5">
+              {[10, 25, 50, 100].map((preset) => (
+                <ScaleButton
+                  key={preset}
+                  activeScale={0.92}
+                  onPress={() => handleAddPreset(preset)}
+                  className="px-3.5 py-1.5 rounded-full bg-surface-container-high border border-outline-variant/30"
                 >
-                  <MaterialIcons
-                    name={acc.icon as any}
-                    size={24}
-                    color={isSelected ? "#b2c5ff" : "#c3c6d6"}
-                  />
-                  <Text
-                    className="text-body-md font-headline-md"
-                    style={{ color: isSelected ? "#b2c5ff" : "#dfe2f1" }} // primary or on-surface
-                  >
-                    {acc.name}
+                  <Text className="text-xs font-bold text-primary">
+                    +${preset}
                   </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+                </ScaleButton>
+              ))}
+            </View>
+          </View>
 
-        {/* Category Selector */}
-        <View className="px-4 mb-8">
-          <Text className="text-on-surface text-label-md uppercase tracking-wider mb-4 px-2 opacity-80">
-            Category
-          </Text>
-          <View className="flex-row flex-wrap gap-4">
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat.name;
-              return (
-                <Pressable
-                  key={cat.name}
-                  className="flex-col items-center justify-center gap-2 w-[22%] aspect-square rounded-2xl border border-solid"
-                  style={{
-                    backgroundColor: isSelected ? "rgba(234, 103, 103, 0.2)" : "#171b26", // tertiary-container/20 or surface-container-low
-                    borderColor: isSelected ? "rgba(234, 103, 103, 0.3)" : "transparent"
-                  }}
-                  onPress={() => setSelectedCategory(cat.name)}
-                >
-                  <View
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: isSelected ? "#ea6767" : "#262a35" // tertiary-container or surface-container-high
-                    }}
+          {/* Account Selector */}
+          <View className="mb-6">
+            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-5">
+              {type === "transfer" ? "From Account" : "Pay With Account"}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+            >
+              {storeAccounts.map((acc) => {
+                const isSelected = selectedAccountId === acc.id;
+                return (
+                  <ScaleButton
+                    key={acc.id}
+                    activeScale={0.94}
+                    onPress={() => setSelectedAccountId(acc.id)}
+                    className={`p-3.5 rounded-2xl flex-row items-center gap-2.5 border ${
+                      isSelected
+                        ? "bg-primary/20 border-primary"
+                        : "bg-surface-container border-outline-variant/30"
+                    }`}
                   >
                     <MaterialIcons
-                      name={cat.icon}
+                      name={acc.icon as any}
                       size={20}
-                      color={isSelected ? "#5c000d" : "#c3c6d6"} // on-tertiary-container vs on-surface-variant
+                      color={isSelected ? "#B2C5FF" : "#C3C6D6"}
                     />
-                  </View>
-                  <Text
-                    className="text-label-md"
-                    style={{ color: isSelected ? "#ea6767" : "#c3c6d6" }} // tertiary-container or on-surface-variant
-                  >
-                    {cat.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <View>
+                      <Text
+                        className={`text-xs font-bold ${
+                          isSelected ? "text-primary" : "text-on-surface"
+                        }`}
+                      >
+                        {acc.name}
+                      </Text>
+                      <Text className="text-[10px] text-on-surface-variant font-medium">
+                        ${acc.balance.toLocaleString()}
+                      </Text>
+                    </View>
+                  </ScaleButton>
+                );
+              })}
+            </ScrollView>
           </View>
-        </View>
 
-        {/* Inputs */}
-        <View className="px-4 flex-col gap-4 mb-10">
-          <View className="bg-surface-container-low rounded-xl px-4 py-1 flex-row items-center gap-3">
-            <MaterialIcons name="storefront" size={20} color="#c3c6d6" />
-            <TextInput
-              className="flex-1 text-on-surface text-body-lg p-3 h-14"
-              placeholder="Merchant or Payee"
-              placeholderTextColor="#c3c6d680"
-              value={merchant}
-              onChangeText={setMerchant}
-            />
-          </View>
-          <View className="bg-surface-container-low rounded-xl px-4 py-3 flex-row items-start gap-3">
-            <MaterialIcons
-              name="notes"
-              size={20}
-              color="#c3c6d6"
-              style={{ marginTop: 4 }}
-            />
-            <TextInput
-              className="flex-1 text-on-surface text-body-md pt-0"
-              placeholder="Add a note (optional)"
-              placeholderTextColor="#c3c6d680"
-              multiline
-              numberOfLines={2}
-              value={note}
-              onChangeText={setNote}
-              style={{ minHeight: 60, textAlignVertical: "top" }}
-            />
-          </View>
-        </View>
+          {/* Destination Account (For Transfer) */}
+          {type === "transfer" && (
+            <View className="mb-6">
+              <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-5">
+                To Account
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+              >
+                {storeAccounts.map((acc) => {
+                  const isSelected = selectedDestinationAccountId === acc.id;
+                  return (
+                    <ScaleButton
+                      key={acc.id}
+                      activeScale={0.94}
+                      onPress={() => setSelectedDestinationAccountId(acc.id)}
+                      className={`p-3.5 rounded-2xl flex-row items-center gap-2.5 border ${
+                        isSelected
+                          ? "bg-secondary/20 border-secondary"
+                          : "bg-surface-container border-outline-variant/30"
+                      }`}
+                    >
+                      <MaterialIcons
+                        name={acc.icon as any}
+                        size={20}
+                        color={isSelected ? "#4DE082" : "#C3C6D6"}
+                      />
+                      <View>
+                        <Text
+                          className={`text-xs font-bold ${
+                            isSelected ? "text-secondary" : "text-on-surface"
+                          }`}
+                        >
+                          {acc.name}
+                        </Text>
+                        <Text className="text-[10px] text-on-surface-variant font-medium">
+                          ${acc.balance.toLocaleString()}
+                        </Text>
+                      </View>
+                    </ScaleButton>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
-        {/* Action */}
-        <View className="px-4">
-          <Pressable
-            className="w-full bg-primary py-4 rounded-xl items-center justify-center flex-row gap-2 active:bg-primary-container shadow-sm"
-            onPress={handleSave}
-          >
-            <MaterialIcons name="check-circle" size={20} color="#002c72" />
-            <Text className="text-on-primary text-headline-md font-headline-md">
-              Save Transaction
-            </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+          {/* Category Selector */}
+          {type !== "transfer" && (
+            <View className="px-5 mb-6">
+              <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3">
+                Category
+              </Text>
+              <View className="flex-row flex-wrap gap-2.5">
+                {availableCategories.map((cat) => {
+                  const isSelected = selectedCategoryId === cat.id;
+                  return (
+                    <ScaleButton
+                      key={cat.id}
+                      activeScale={0.92}
+                      onPress={() => setSelectedCategoryId(cat.id)}
+                      className={`p-3 rounded-2xl flex-col items-center justify-center gap-1.5 w-[30%] border ${
+                        isSelected
+                          ? "bg-primary/20 border-primary"
+                          : "bg-surface-container border-outline-variant/30"
+                      }`}
+                    >
+                      <View
+                        className="w-10 h-10 rounded-xl items-center justify-center shadow-sm"
+                        style={{
+                          backgroundColor: isSelected
+                            ? cat.color
+                            : `${cat.color}25`,
+                        }}
+                      >
+                        <MaterialIcons
+                          name={cat.icon as any}
+                          size={20}
+                          color={isSelected ? "#002C72" : cat.color}
+                        />
+                      </View>
+                      <Text
+                        numberOfLines={1}
+                        className={`text-xs font-bold ${
+                          isSelected ? "text-primary" : "text-on-surface-variant"
+                        }`}
+                      >
+                        {cat.name}
+                      </Text>
+                    </ScaleButton>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Merchant & Note Inputs */}
+          <View className="px-5 flex-col gap-3 mb-8">
+            <View className="bg-surface-container rounded-2xl px-4 py-1 flex-row items-center gap-3 border border-outline-variant/30">
+              <MaterialIcons name="storefront" size={20} color="#C3C6D6" />
+              <TextInput
+                className="flex-1 text-on-surface text-sm p-3 h-12"
+                placeholder="Merchant or Payee (e.g. Target)"
+                placeholderTextColor="#C3C6D680"
+                value={merchant}
+                onChangeText={setMerchant}
+              />
+            </View>
+
+            <View className="bg-surface-container rounded-2xl px-4 py-2 flex-row items-start gap-3 border border-outline-variant/30">
+              <MaterialIcons
+                name="notes"
+                size={20}
+                color="#C3C6D6"
+                style={{ marginTop: 4 }}
+              />
+              <TextInput
+                className="flex-1 text-on-surface text-sm p-2 pt-0"
+                placeholder="Add a note (optional)"
+                placeholderTextColor="#C3C6D680"
+                multiline
+                numberOfLines={2}
+                value={note}
+                onChangeText={setNote}
+                style={{ minHeight: 48, textAlignVertical: "top" }}
+              />
+            </View>
+          </View>
+
+          {/* Save Button */}
+          <View className="px-5">
+            <ScaleButton
+              activeScale={0.95}
+              className="w-full bg-primary py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg"
+              onPress={handleSave}
+            >
+              <MaterialIcons name="check" size={22} color="#002C72" />
+              <Text className="text-base font-extrabold text-on-primary">
+                Save Transaction
+              </Text>
+            </ScaleButton>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );

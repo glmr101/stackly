@@ -1,15 +1,30 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
-import { Link } from "expo-router";
+import React, { useEffect } from "react";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+  FadeInDown,
+  FadeInRight,
+} from "react-native-reanimated";
 import { useAppStore } from "@/store/useAppStore";
+import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
+import { ScaleButton } from "@/components/ui/ScaleButton";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  
+  const router = useRouter();
+
   const accounts = useAppStore((state) => state.accounts);
   const transactions = useAppStore((state) => state.transactions);
   const subscriptions = useAppStore((state) => state.subscriptions);
+  const categories = useAppStore((state) => state.categories);
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -19,18 +34,55 @@ export default function Home() {
 
   transactions.forEach((tx) => {
     const txDate = new Date(tx.date);
-    if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
-      if (tx.type === 'income') incomeThisMonth += tx.amount;
-      if (tx.type === 'expense') expensesThisMonth += tx.amount;
+    if (
+      txDate.getMonth() === currentMonth &&
+      txDate.getFullYear() === currentYear
+    ) {
+      if (tx.type === "income") incomeThisMonth += tx.amount;
+      if (tx.type === "expense") expensesThisMonth += tx.amount;
     }
   });
 
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+  const netWorthTrend = incomeThisMonth - expensesThisMonth;
+  const trendIsPositive = netWorthTrend >= 0;
 
-  // Derive upcoming bills from active subscriptions (mocking "due date" logic)
+  // Pulse animation for trend indicator
+  const pulseScale = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0.6);
+
+  useEffect(() => {
+    pulseScale.value = withRepeat(
+      withSequence(
+        withTiming(1.6, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    pulseOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.6, { duration: 1400, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: pulseOpacity.value,
+  }));
+
+  // Upcoming bills derived from active subscriptions
   const upcomingBills = subscriptions
     .filter((sub) => sub.active)
-    .sort((a, b) => new Date(a.nextChargeDate).getTime() - new Date(b.nextChargeDate).getTime())
+    .sort(
+      (a, b) =>
+        new Date(a.nextChargeDate).getTime() -
+        new Date(b.nextChargeDate).getTime()
+    )
     .slice(0, 3)
     .map((sub) => {
       const date = new Date(sub.nextChargeDate);
@@ -38,99 +90,310 @@ export default function Home() {
         id: sub.id,
         name: sub.name,
         amount: sub.amount,
-        dueDate: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        dueDate: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         icon: sub.icon,
+        color: sub.color || "#B2C5FF",
       };
     });
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      {/* Header */}
-      <View className="h-16 px-container-padding flex-row items-center justify-between z-50">
-        <View className="flex-row items-center gap-3">
-          <Text className="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">
-            Home
-          </Text>
+      {/* Top Navigation Bar */}
+      <View className="h-16 px-5 flex-row items-center justify-between z-50">
+        <View className="flex-row items-center gap-2.5">
+          <View className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 items-center justify-center">
+            <MaterialIcons name="auto-graph" size={20} color="#B2C5FF" />
+          </View>
+          <View>
+            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+              Welcome Back
+            </Text>
+            <Text className="text-lg font-bold text-on-surface tracking-tight">
+              Stackly Overview
+            </Text>
+          </View>
         </View>
-        <Link href="/settings" asChild>
-          <Pressable className="flex items-center justify-center transition-colors">
-            <MaterialIcons name="settings" size={24} color="#c3c6d6" />
-          </Pressable>
+
+        <Link href={"/settings" as any} asChild>
+          <ScaleButton
+            activeScale={0.88}
+            className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 items-center justify-center shadow-sm"
+          >
+            <MaterialIcons name="settings" size={20} color="#C3C6D6" />
+          </ScaleButton>
         </Link>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* Net Worth */}
-        <View className="px-container-padding py-section-gap flex-col items-center justify-center bg-surface-container rounded-b-[32px] overflow-hidden mb-8">
-          <Text className="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider z-10">
-            Total Net Worth
-          </Text>
-          <Text className="text-numeral-xl font-numeral-xl text-on-surface mt-2 z-10">
-            ${totalNetWorth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </Text>
-          <View className="flex-row items-center gap-4 mt-4 z-10">
-            <View className="flex-row items-center gap-1 bg-secondary-container/20 px-3 py-1.5 rounded-full">
-              <MaterialIcons name="arrow-downward" size={16} color="#4de082" />
-              <Text className="text-label-md font-label-md text-secondary">
-                ${incomeThisMonth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1 bg-error-container/20 px-3 py-1.5 rounded-full">
-              <MaterialIcons name="arrow-upward" size={16} color="#ffb4ab" />
-              <Text className="text-label-md font-label-md text-error">
-                ${expensesThisMonth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        {/* Hero Net Worth Card */}
+        <Animated.View
+          entering={FadeInDown.duration(400).springify()}
+          className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
+        >
+          {/* Ambient Glow Orbs in Background */}
+          <View className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+          <View className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-secondary/10 blur-2xl pointer-events-none" />
+
+          {/* Header row */}
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+              Total Net Worth
+            </Text>
+            <View className="flex-row items-center gap-1.5 bg-surface-container-highest/80 px-2.5 py-1 rounded-full border border-white/5">
+              <View className="relative w-2 h-2 items-center justify-center">
+                <Animated.View
+                  className={`absolute w-full h-full rounded-full ${
+                    trendIsPositive ? "bg-secondary" : "bg-error"
+                  }`}
+                  style={animatedPulseStyle}
+                />
+                <View
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    trendIsPositive ? "bg-secondary" : "bg-error"
+                  }`}
+                />
+              </View>
+              <Text
+                className={`text-[11px] font-bold ${
+                  trendIsPositive ? "text-secondary" : "text-error"
+                }`}
+              >
+                {trendIsPositive ? "+" : "-"}$
+                {Math.abs(netWorthTrend).toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
               </Text>
             </View>
           </View>
-        </View>
 
-        {/* Accounts Horizontal Scroll */}
-        <View className="mb-section-gap">
-          <View className="px-container-padding mb-4 flex-row items-center justify-between">
-            <Text className="text-headline-md font-headline-md text-on-background">
-              Accounts
-            </Text>
+          {/* Animated Large Net Worth Number */}
+          <View className="my-1">
+            <AnimatedCounter
+              value={totalNetWorth}
+              prefix="$"
+              decimals={2}
+              className="text-4xl font-extrabold text-on-surface tracking-tight"
+            />
+          </View>
+
+          <Text className="text-xs text-on-surface-variant font-medium mt-1">
+            Net cash flow calculated for this current month
+          </Text>
+
+          {/* Cash Flow Summary Badges */}
+          <View className="flex-row items-center gap-3 mt-5 pt-4 border-t border-white/5">
+            <View className="flex-1 bg-surface-container-low/90 rounded-2xl p-3 border border-secondary/15 flex-row items-center gap-2.5">
+              <View className="w-8 h-8 rounded-full bg-secondary/15 items-center justify-center">
+                <MaterialIcons name="arrow-downward" size={16} color="#4DE082" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[11px] font-medium text-on-surface-variant">
+                  Income
+                </Text>
+                <AnimatedCounter
+                  value={incomeThisMonth}
+                  prefix="+$"
+                  decimals={0}
+                  className="text-sm font-bold text-secondary mt-0.5"
+                />
+              </View>
+            </View>
+
+            <View className="flex-1 bg-surface-container-low/90 rounded-2xl p-3 border border-error/15 flex-row items-center gap-2.5">
+              <View className="w-8 h-8 rounded-full bg-error/15 items-center justify-center">
+                <MaterialIcons name="arrow-upward" size={16} color="#FFB4AB" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[11px] font-medium text-on-surface-variant">
+                  Expenses
+                </Text>
+                <AnimatedCounter
+                  value={expensesThisMonth}
+                  prefix="-$"
+                  decimals={0}
+                  className="text-sm font-bold text-error mt-0.5"
+                />
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Quick Action Buttons */}
+        <Animated.View
+          entering={FadeInDown.delay(100).springify()}
+          className="mx-5 mb-7 flex-row items-center justify-between gap-3"
+        >
+          <Link href={"/add-transaction" as any} asChild>
+            <ScaleButton
+              activeScale={0.92}
+              className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
+            >
+              <View className="w-9 h-9 rounded-xl bg-secondary/15 items-center justify-center">
+                <MaterialIcons name="add" size={20} color="#4DE082" />
+              </View>
+              <Text className="text-xs font-semibold text-on-surface">
+                Income
+              </Text>
+            </ScaleButton>
+          </Link>
+
+          <Link href={"/add-transaction" as any} asChild>
+            <ScaleButton
+              activeScale={0.92}
+              className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
+            >
+              <View className="w-9 h-9 rounded-xl bg-error/15 items-center justify-center">
+                <MaterialIcons name="remove" size={20} color="#FFB4AB" />
+              </View>
+              <Text className="text-xs font-semibold text-on-surface">
+                Expense
+              </Text>
+            </ScaleButton>
+          </Link>
+
+          <Link href={"/add-transaction" as any} asChild>
+            <ScaleButton
+              activeScale={0.92}
+              className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
+            >
+              <View className="w-9 h-9 rounded-xl bg-primary/15 items-center justify-center">
+                <MaterialIcons name="swap-horiz" size={20} color="#B2C5FF" />
+              </View>
+              <Text className="text-xs font-semibold text-on-surface">
+                Transfer
+              </Text>
+            </ScaleButton>
+          </Link>
+
+          <Link href={"/budgets" as any} asChild>
+            <ScaleButton
+              activeScale={0.92}
+              className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
+            >
+              <View className="w-9 h-9 rounded-xl bg-purple-500/15 items-center justify-center">
+                <MaterialIcons name="pie-chart" size={18} color="#C084FC" />
+              </View>
+              <Text className="text-xs font-semibold text-on-surface">
+                Budgets
+              </Text>
+            </ScaleButton>
+          </Link>
+        </Animated.View>
+
+        {/* Accounts Horizontal Carousel */}
+        <View className="mb-7">
+          <View className="px-5 mb-3.5 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-base font-bold text-on-surface tracking-tight">
+                Accounts
+              </Text>
+              <View className="bg-surface-container-high px-2 py-0.5 rounded-full">
+                <Text className="text-[11px] font-bold text-primary">
+                  {accounts.length}
+                </Text>
+              </View>
+            </View>
             <Link href="/accounts" asChild>
-              <Pressable hitSlop={10}>
-                <Text className="text-label-md font-label-md text-primary">View all</Text>
-              </Pressable>
+              <ScaleButton activeScale={0.92} hitSlop={12}>
+                <Text className="text-xs font-semibold text-primary">
+                  View all →
+                </Text>
+              </ScaleButton>
             </Link>
           </View>
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
-            snapToInterval={216} // 200 + 16 gap
-            snapToAlignment="start"
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
             decelerationRate="fast"
+            snapToInterval={224}
+            snapToAlignment="start"
           >
-            {accounts.map((account) => {
-              const isPrimary = account.type === 'savings'; // Just to match design colors
+            {accounts.map((account, index) => {
+              const isPrimary = account.type === "bank";
               return (
                 <Link key={account.id} href="/accounts" asChild>
-                  <Pressable
-                    className={`w-[200px] p-4 rounded-xl flex-col justify-between h-32 overflow-hidden shadow-sm active:opacity-80 ${
-                      isPrimary ? 'bg-primary-container' : 'bg-surface-container-high'
-                    }`}
+                  <Animated.View
+                    entering={FadeInRight.delay(index * 80).springify()}
                   >
-                    <View className="absolute right-[-10px] bottom-[-10px] opacity-10">
-                      <MaterialIcons name={account.icon} size={80} color={isPrimary ? '#002665' : '#c3c6d6'} />
-                    </View>
-                    <View>
-                      <Text className={`text-label-md font-label-md uppercase ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
-                        {account.name}
-                      </Text>
-                      <Text className={`text-headline-lg-mobile font-headline-lg-mobile mt-1 ${isPrimary ? 'text-on-primary-container' : 'text-on-surface'}`}>
-                        ${account.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center gap-1">
-                      <MaterialIcons name="account-balance" size={14} color={isPrimary ? '#002665' : '#c3c6d6'} />
-                      <Text className={`text-label-md font-label-md ${isPrimary ? 'text-on-primary-container opacity-80' : 'text-on-surface-variant'}`}>
-                        {account.institution}
-                      </Text>
-                    </View>
-                  </Pressable>
+                    <ScaleButton
+                      activeScale={0.94}
+                      className={`w-[210px] p-4 rounded-[22px] justify-between h-36 overflow-hidden border shadow-md relative ${
+                        isPrimary
+                          ? "bg-[#1E293B] border-primary/30"
+                          : "bg-surface-container border-outline-variant/30"
+                      }`}
+                    >
+                      {/* Background Watermark Icon */}
+                      <View className="absolute right-[-14px] bottom-[-14px] opacity-10">
+                        <MaterialIcons
+                          name={account.icon as any}
+                          size={90}
+                          color={isPrimary ? "#B2C5FF" : "#C3C6D6"}
+                        />
+                      </View>
+
+                      {/* Card Top */}
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-2">
+                          <View
+                            className={`w-7 h-7 rounded-lg items-center justify-center ${
+                              isPrimary ? "bg-primary/20" : "bg-surface-container-highest"
+                            }`}
+                          >
+                            <MaterialIcons
+                              name={account.icon as any}
+                              size={16}
+                              color={isPrimary ? "#B2C5FF" : "#C3C6D6"}
+                            />
+                          </View>
+                          <Text
+                            numberOfLines={1}
+                            className="text-xs font-medium text-on-surface-variant max-w-[110px]"
+                          >
+                            {account.institution}
+                          </Text>
+                        </View>
+                        <View
+                          className={`px-2 py-0.5 rounded-full ${
+                            isPrimary ? "bg-primary/20" : "bg-surface-container-highest"
+                          }`}
+                        >
+                          <Text
+                            className={`text-[10px] font-bold uppercase ${
+                              isPrimary ? "text-primary" : "text-on-surface-variant"
+                            }`}
+                          >
+                            {account.type}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Card Bottom */}
+                      <View>
+                        <Text
+                          numberOfLines={1}
+                          className="text-xs font-medium text-on-surface-variant mb-0.5"
+                        >
+                          {account.name}
+                        </Text>
+                        <AnimatedCounter
+                          value={account.balance}
+                          prefix="$"
+                          decimals={2}
+                          className="text-lg font-extrabold text-on-surface"
+                        />
+                      </View>
+                    </ScaleButton>
+                  </Animated.View>
                 </Link>
               );
             })}
@@ -138,96 +401,174 @@ export default function Home() {
         </View>
 
         {/* Upcoming Bills */}
-        <View className="mb-section-gap px-container-padding">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-headline-md font-headline-md text-on-background">
-              Upcoming Bills
-            </Text>
-            <Link href="/subscriptions" asChild>
-              <Pressable hitSlop={10}>
-                <Text className="text-label-md font-label-md text-primary">View all</Text>
-              </Pressable>
-            </Link>
-          </View>
-          <View className="bg-surface-container rounded-xl p-card-inner-padding shadow-sm flex-col gap-4">
-            {upcomingBills.map((bill) => (
-              <View key={bill.id} className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-3">
-                  <View className="w-10 h-10 bg-surface-container-highest rounded-full flex items-center justify-center">
-                    <MaterialIcons name={bill.icon} size={20} color="#c3c6d6" />
-                  </View>
-                  <View className="flex-col">
-                    <Text className="text-body-lg font-body-lg text-on-surface">
-                      {bill.name}
-                    </Text>
-                    <Text className="text-label-md font-label-md text-on-surface-variant">
-                      {bill.dueDate}
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-body-lg font-body-lg text-on-surface font-medium">
-                  -${bill.amount.toFixed(2)}
+        {upcomingBills.length > 0 && (
+          <View className="mb-7 px-5">
+            <View className="flex-row items-center justify-between mb-3.5">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-base font-bold text-on-surface tracking-tight">
+                  Upcoming Bills
                 </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Recent Activity */}
-        <View className="mb-section-gap px-container-padding">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-headline-md font-headline-md text-on-background">
-              Recent Activity
-            </Text>
-            <Link href="/transactions" asChild>
-              <Pressable hitSlop={10}>
-                <Text className="text-label-md font-label-md text-primary">View all</Text>
-              </Pressable>
-            </Link>
-          </View>
-          <View className="flex-col gap-4">
-            {transactions.slice(0, 5).map((tx) => {
-              const isIncome = tx.type === 'income';
-              const isExpense = tx.type === 'expense';
-              
-              let bgColor = 'bg-surface-container-high';
-              let iconColor = '#c3c6d6';
-              let amountColor = 'text-on-surface';
-
-              if (isIncome) {
-                bgColor = 'bg-secondary-container/20';
-                iconColor = '#4de082';
-                amountColor = 'text-secondary';
-              } else if (isExpense) {
-                bgColor = 'bg-error-container/20';
-                iconColor = '#ffb4ab';
-              }
-
-              return (
-                <View key={tx.id} className="flex-row items-center justify-between bg-surface-container p-4 rounded-xl shadow-sm">
-                  <View className="flex-row items-center gap-3">
-                    <View className={`w-12 h-12 rounded-full flex items-center justify-center ${bgColor}`}>
-                      <MaterialIcons name={tx.categoryIcon} size={24} color={iconColor} />
-                    </View>
-                    <View className="flex-col">
-                      <Text className="text-body-lg font-body-lg text-on-surface">
-                        {tx.payee}
-                      </Text>
-                      <Text className="text-label-md font-label-md text-on-surface-variant">
-                        {tx.category}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className={`text-body-lg font-body-lg font-medium ${amountColor}`}>
-                    {isIncome ? '+' : '-'}${tx.amount.toFixed(2)}
+                <View className="bg-secondary/15 px-2 py-0.5 rounded-full">
+                  <Text className="text-[11px] font-bold text-secondary">
+                    Due Soon
                   </Text>
                 </View>
+              </View>
+              <Link href="/subscriptions" asChild>
+                <ScaleButton activeScale={0.92} hitSlop={12}>
+                  <Text className="text-xs font-semibold text-primary">
+                    Manage →
+                  </Text>
+                </ScaleButton>
+              </Link>
+            </View>
+
+            <View className="bg-surface-container rounded-[24px] p-4 shadow-sm border border-outline-variant/30 flex-col gap-3">
+              {upcomingBills.map((bill, index) => (
+                <Animated.View
+                  key={bill.id}
+                  entering={FadeInDown.delay(index * 70 + 150).springify()}
+                  className="flex-row items-center justify-between py-1"
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View
+                      className="w-10 h-10 rounded-2xl items-center justify-center shadow-sm"
+                      style={{ backgroundColor: `${bill.color}20` }}
+                    >
+                      <MaterialIcons
+                        name={bill.icon as any}
+                        size={20}
+                        color={bill.color}
+                      />
+                    </View>
+                    <View>
+                      <Text className="text-sm font-semibold text-on-surface">
+                        {bill.name}
+                      </Text>
+                      <Text className="text-xs text-on-surface-variant font-medium">
+                        Due {bill.dueDate}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="items-end">
+                    <AnimatedCounter
+                      value={bill.amount}
+                      prefix="-$"
+                      decimals={2}
+                      className="text-sm font-bold text-on-surface"
+                    />
+                    <View className="bg-surface-container-highest px-2 py-0.5 rounded-full mt-0.5">
+                      <Text className="text-[10px] font-medium text-on-surface-variant">
+                        Auto-pay
+                      </Text>
+                    </View>
+                  </View>
+                </Animated.View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Recent Activity */}
+        <View className="px-5">
+          <View className="flex-row items-center justify-between mb-3.5">
+            <Text className="text-base font-bold text-on-surface tracking-tight">
+              Recent Activity
+            </Text>
+            <Link href={"/transactions" as any} asChild>
+              <ScaleButton activeScale={0.92} hitSlop={12}>
+                <Text className="text-xs font-semibold text-primary">
+                  View all →
+                </Text>
+              </ScaleButton>
+            </Link>
+          </View>
+
+          <View className="flex-col gap-2.5">
+            {transactions.slice(0, 5).map((tx, index) => {
+              const isIncome = tx.type === "income";
+              const isExpense = tx.type === "expense";
+              const cat = categories.find((c) => c.id === tx.categoryId);
+
+              let iconBg = "bg-surface-container-high";
+              let iconColor = "#C3C6D6";
+              let amountClass = "text-on-surface";
+
+              if (isIncome) {
+                iconBg = "bg-secondary/15";
+                iconColor = "#4DE082";
+                amountClass = "text-secondary";
+              } else if (isExpense) {
+                iconBg = "bg-error/15";
+                iconColor = "#FFB4AB";
+                amountClass = "text-error";
+              }
+
+              const txDate = new Date(tx.date).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+
+              return (
+                <Animated.View
+                  key={tx.id}
+                  entering={FadeInDown.delay(index * 60 + 200).springify()}
+                >
+                  <Link href={"/transactions" as any} asChild>
+                    <ScaleButton
+                      activeScale={0.97}
+                      className="flex-row items-center justify-between bg-surface-container p-3.5 rounded-[20px] shadow-sm border border-outline-variant/20"
+                    >
+                      <View className="flex-row items-center gap-3">
+                        <View
+                          className={`w-11 h-11 rounded-2xl items-center justify-center ${iconBg}`}
+                        >
+                          <MaterialIcons
+                            name={(cat?.icon || "receipt") as any}
+                            size={22}
+                            color={iconColor}
+                          />
+                        </View>
+                        <View>
+                          <Text
+                            numberOfLines={1}
+                            className="text-sm font-bold text-on-surface max-w-[180px]"
+                          >
+                            {tx.payee}
+                          </Text>
+                          <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                            {cat?.name || "Transfer"} • {txDate}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="items-end">
+                        <Text className={`text-sm font-extrabold ${amountClass}`}>
+                          {isIncome ? "+" : "-"}${tx.amount.toFixed(2)}
+                        </Text>
+                      </View>
+                    </ScaleButton>
+                  </Link>
+                </Animated.View>
               );
             })}
+
+            {transactions.length === 0 && (
+              <View className="py-12 items-center justify-center bg-surface-container rounded-[24px] border border-outline-variant/20">
+                <MaterialIcons
+                  name="receipt-long"
+                  size={40}
+                  color="#C3C6D6"
+                  style={{ opacity: 0.5 }}
+                />
+                <Text className="text-sm text-on-surface-variant font-medium mt-2">
+                  No recent activity
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
-
     </View>
   );
 }

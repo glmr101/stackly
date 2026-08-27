@@ -1,27 +1,29 @@
-import { View, Pressable, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Text } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Link } from 'expo-router';
 import { MaterialIconName } from '@/types';
+import { ScaleButton } from './ScaleButton';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
   const currentRouteName = state.routes[state.index].name;
-  let fabHref = "/add-transaction";
-  if (currentRouteName === "accounts") {
-    fabHref = "/add-account";
-  } else if (currentRouteName === "subscriptions") {
-    fabHref = "/add-subscription";
+  let fabHref = '/add-transaction';
+  if (currentRouteName === 'accounts') {
+    fabHref = '/add-account';
+  } else if (currentRouteName === 'subscriptions') {
+    fabHref = '/add-subscription';
   }
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom || 24 }]}>
-      {/* Pill-shaped Dock */}
-      <View className="flex-row items-center bg-surface-container-high rounded-[18px] px-8 h-14 shadow-lg border border-outline-variant/20 gap-8">
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      {/* Pill-shaped Floating Dock */}
+      <View className="flex-row items-center bg-[#131722]/95 rounded-[26px] px-3 h-16 shadow-2xl border border-white/10 gap-1.5 backdrop-blur-xl">
         {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
           const isFocused = state.index === index;
 
           const onPress = () => {
@@ -36,32 +38,65 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             }
           };
 
-          const iconName: MaterialIconName = 
-            route.name === 'index' ? 'home' : 
-            route.name === 'accounts' ? 'account-balance-wallet' : 
-            route.name === 'subscriptions' ? 'calendar-today' : 'circle';
+          const iconName: MaterialIconName =
+            route.name === 'index'
+              ? 'home-filled'
+              : route.name === 'accounts'
+              ? 'account-balance-wallet'
+              : route.name === 'subscriptions'
+              ? 'calendar-today'
+              : route.name === 'budgets'
+              ? 'pie-chart'
+              : 'circle';
+
+          const label =
+            route.name === 'index'
+              ? 'Home'
+              : route.name === 'accounts'
+              ? 'Accounts'
+              : route.name === 'subscriptions'
+              ? 'Recurring'
+              : route.name === 'budgets'
+              ? 'Budgets'
+              : route.name;
 
           return (
-            <Pressable
+            <ScaleButton
               key={route.key}
+              activeScale={0.88}
               onPress={onPress}
-              className={`flex items-center justify-center transition-transform active:scale-90`}
+              className={`flex-row items-center justify-center py-2.5 px-3 rounded-[18px] ${
+                isFocused
+                  ? 'bg-primary/15 border border-primary/25'
+                  : 'bg-transparent'
+              }`}
             >
               <MaterialIcons
                 name={iconName}
-                size={24}
-                color={isFocused ? '#b2c5ff' : '#c3c6d6'} // primary vs on-surface-variant
+                size={22}
+                color={isFocused ? '#B2C5FF' : '#8D909F'}
               />
-            </Pressable>
+              {isFocused && (
+                <Animated.View entering={FadeIn.duration(200)} className="ml-1.5">
+                  <Text className="text-xs font-bold text-primary tracking-tight">
+                    {label}
+                  </Text>
+                </Animated.View>
+              )}
+            </ScaleButton>
           );
         })}
       </View>
-      
-      {/* Separate FAB */}
+
+      {/* Floating Action Button (FAB) */}
       <Link href={fabHref as any} asChild>
-        <Pressable className="w-14 h-14 bg-surface-container-high rounded-[18px] shadow-lg flex items-center justify-center active:scale-95 border border-outline-variant/20 ml-4">
-          <MaterialIcons name="add" size={30} color="#b2c5ff" />
-        </Pressable>
+        <ScaleButton
+          activeScale={0.88}
+          className="w-14 h-14 bg-primary rounded-[22px] shadow-xl flex items-center justify-center ml-3 border border-white/20"
+          style={styles.fabShadow}
+        >
+          <MaterialIcons name="add" size={30} color="#002C72" />
+        </ScaleButton>
       </Link>
     </View>
   );
@@ -76,6 +111,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+  },
+  fabShadow: {
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
 });
+
+export default TabBar;
