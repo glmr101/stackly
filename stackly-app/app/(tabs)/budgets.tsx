@@ -3,11 +3,9 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/store/useAppStore";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { AnimatedProgressBar } from "@/components/ui/AnimatedProgressBar";
-import { ScaleButton } from "@/components/ui/ScaleButton";
-import { Link } from "expo-router";
+import { AnimatedBox } from "@/components/ui/AnimatedBox";
 
 export default function Budgets() {
   const insets = useSafeAreaInsets();
@@ -53,7 +51,7 @@ export default function Budgets() {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="h-16 px-5 flex-row items-center justify-between z-50">
+      <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
         <View className="flex-row items-center gap-2.5">
           <View className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 items-center justify-center">
             <MaterialIcons name="pie-chart" size={20} color="#C084FC" />
@@ -62,23 +60,15 @@ export default function Budgets() {
             Budgets & Limits
           </Text>
         </View>
-        <Link href={"/add-transaction" as any} asChild>
-          <ScaleButton
-            activeScale={0.88}
-            className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 items-center justify-center shadow-sm"
-          >
-            <MaterialIcons name="add" size={22} color="#B2C5FF" />
-          </ScaleButton>
-        </Link>
-      </View>
+      </AnimatedBox>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* Overall Budget Hero Card */}
-        <Animated.View
-          entering={FadeInDown.duration(400).springify()}
+        <AnimatedBox
+          delay={60}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-secondary/10 blur-2xl pointer-events-none" />
@@ -100,57 +90,58 @@ export default function Budgets() {
                 }`}
               >
                 {isOverallOver
-                  ? "Over Budget"
-                  : `${(100 - overallProgress).toFixed(0)}% Left`}
+                  ? "Over Limit"
+                  : `${overallProgress.toFixed(0)}% Used`}
               </Text>
             </View>
           </View>
 
-          <View className="my-1 flex-row items-baseline gap-2">
+          <View className="flex-row items-baseline gap-2 my-1">
             <AnimatedCounter
               value={totalMonthlySpent}
               prefix="$"
-              decimals={0}
+              decimals={2}
               className="text-4xl font-extrabold text-on-surface tracking-tight"
             />
-            <Text className="text-sm font-semibold text-on-surface-variant">
-              of ${totalMonthlyLimit.toLocaleString()}
+            <Text className="text-sm font-bold text-on-surface-variant">
+              / ${totalMonthlyLimit.toLocaleString()}
             </Text>
           </View>
 
-          {/* Progress Bar */}
+          {/* Animated Progress Bar */}
           <AnimatedProgressBar
             progress={overallProgress}
-            height={8}
+            height={10}
             barColor={isOverallOver ? "#FFB4AB" : "#4DE082"}
             trackColor="#131722"
             className="my-3"
           />
 
-          <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-white/5">
+          <View className="flex-row justify-between items-center mt-1">
             <Text className="text-xs font-medium text-on-surface-variant">
-              {isOverallOver ? "Over budget by" : "Remaining to spend"}
+              {isOverallOver ? "Budget exceeded by" : "Remaining to spend"}
             </Text>
-            <AnimatedCounter
-              value={Math.abs(totalRemaining)}
-              prefix={isOverallOver ? "-$" : "$"}
-              decimals={2}
-              className={`text-xs font-bold ${
+            <Text
+              className={`text-xs font-extrabold ${
                 isOverallOver ? "text-error" : "text-secondary"
               }`}
-            />
+            >
+              {isOverallOver
+                ? `+$${Math.abs(totalRemaining).toFixed(2)}`
+                : `$${totalRemaining.toFixed(2)}`}
+            </Text>
           </View>
-        </Animated.View>
+        </AnimatedBox>
 
         {/* Category Budget Goals */}
-        <View className="px-5 flex-col gap-3.5">
+        <AnimatedBox delay={140} className="px-5 mb-8 flex-col gap-3">
           <View className="flex-row items-center justify-between mb-1">
             <Text className="text-base font-bold text-on-surface tracking-tight">
               Categories ({budgetGoals.length})
             </Text>
           </View>
 
-          {budgetGoals.map((goal, index) => {
+          {budgetGoals.map((goal) => {
             const cat = categories.find((c) => c.id === goal.categoryId);
             if (!cat) return null;
 
@@ -167,9 +158,8 @@ export default function Budgets() {
             }
 
             return (
-              <Animated.View
+              <View
                 key={goal.id}
-                entering={FadeInDown.delay(index * 70).springify()}
                 className="bg-surface-container p-5 rounded-[24px] shadow-sm border border-outline-variant/30 relative overflow-hidden"
               >
                 <View className="flex-row items-center justify-between mb-3">
@@ -232,7 +222,7 @@ export default function Budgets() {
                       : `$${remaining.toFixed(2)}`}
                   </Text>
                 </View>
-              </Animated.View>
+              </View>
             );
           })}
 
@@ -249,7 +239,7 @@ export default function Budgets() {
               </Text>
             </View>
           )}
-        </View>
+        </AnimatedBox>
       </ScrollView>
     </View>
   );

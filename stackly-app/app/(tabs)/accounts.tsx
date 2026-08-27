@@ -1,18 +1,17 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { Account } from "@/types";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedProgressBar } from "@/components/ui/AnimatedProgressBar";
+import { AnimatedBox } from "@/components/ui/AnimatedBox";
 
 export default function Accounts() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const accounts = useAppStore((state) => state.accounts);
   const savingsGoals = useAppStore((state) => state.savingsGoals);
   const addSavingsContribution = useAppStore(
@@ -56,7 +55,7 @@ export default function Accounts() {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="h-16 px-5 flex-row items-center justify-between z-50">
+      <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
         <View className="flex-row items-center gap-2.5">
           <View className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 items-center justify-center">
             <MaterialIcons name="account-balance" size={20} color="#B2C5FF" />
@@ -65,23 +64,15 @@ export default function Accounts() {
             Accounts & Assets
           </Text>
         </View>
-        <Link href={"/add-account" as any} asChild>
-          <ScaleButton
-            activeScale={0.88}
-            className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 items-center justify-center shadow-sm"
-          >
-            <MaterialIcons name="add" size={22} color="#B2C5FF" />
-          </ScaleButton>
-        </Link>
-      </View>
+      </AnimatedBox>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* Total Net Worth Hero Card */}
-        <Animated.View
-          entering={FadeInDown.duration(400).springify()}
+        <AnimatedBox
+          delay={60}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
@@ -148,10 +139,10 @@ export default function Accounts() {
               />
             </View>
           </View>
-        </Animated.View>
+        </AnimatedBox>
 
         {/* Filter Chips */}
-        <View className="mx-5 mb-5">
+        <AnimatedBox delay={120} className="mx-5 mb-5">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -181,25 +172,24 @@ export default function Accounts() {
               );
             })}
           </ScrollView>
-        </View>
+        </AnimatedBox>
 
         {/* Accounts List */}
-        <View className="px-5 mb-8 flex-col gap-3">
+        <AnimatedBox delay={180} className="px-5 mb-8 flex-col gap-3">
           <View className="flex-row items-center justify-between mb-1">
             <Text className="text-base font-bold text-on-surface tracking-tight">
               All Accounts ({filteredAccounts.length})
             </Text>
           </View>
 
-          {filteredAccounts.map((account, index) => {
+          {filteredAccounts.map((account) => {
             const isExpanded = expandedId === account.id;
             const isPrimary =
               account.type === "bank" || account.type === "e-wallet";
 
             return (
-              <Animated.View
+              <View
                 key={account.id}
-                entering={FadeInDown.delay(index * 70).springify()}
                 className="bg-surface-container rounded-[24px] border border-outline-variant/30 overflow-hidden shadow-sm"
               >
                 <ScaleButton
@@ -280,13 +270,13 @@ export default function Accounts() {
                     </Link>
                   </View>
                 )}
-              </Animated.View>
+              </View>
             );
           })}
-        </View>
+        </AnimatedBox>
 
         {/* Savings Goals Section */}
-        <View className="px-5">
+        <AnimatedBox delay={240} className="px-5">
           <View className="flex-row items-center justify-between mb-3.5">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">
@@ -301,16 +291,15 @@ export default function Accounts() {
           </View>
 
           <View className="flex-col gap-3">
-            {savingsGoals.map((goal, index) => {
+            {savingsGoals.map((goal) => {
               const percentage = Math.min(
                 (goal.currentAmount / goal.targetAmount) * 100,
                 100
               );
 
               return (
-                <Animated.View
+                <View
                   key={goal.id}
-                  entering={FadeInDown.delay(index * 80 + 200).springify()}
                   className="bg-surface-container p-5 rounded-[24px] shadow-sm border border-outline-variant/30"
                 >
                   <View className="flex-row items-center justify-between mb-3">
@@ -380,11 +369,11 @@ export default function Accounts() {
                       </Text>
                     </ScaleButton>
                   </View>
-                </Animated.View>
+                </View>
               );
             })}
           </View>
-        </View>
+        </AnimatedBox>
       </ScrollView>
     </View>
   );

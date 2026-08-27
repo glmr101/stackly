@@ -8,11 +8,11 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { MaterialIconName, Account } from "@/types";
 import { ScaleButton } from "@/components/ui/ScaleButton";
+import { GrabHandle } from "@/components/ui/GrabHandle";
 
 type AccountType = Account["type"];
 
@@ -22,7 +22,6 @@ interface AccountTypeOption {
 }
 
 export default function AddAccount() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const addAccount = useAppStore((state) => state.addAccount);
@@ -75,7 +74,8 @@ export default function AddAccount() {
   };
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background">
+      <GrabHandle />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"

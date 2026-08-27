@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Link } from "expo-router";
 import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
+import { AnimatedBox } from "@/components/ui/AnimatedBox";
 
 export default function Subscriptions() {
   const insets = useSafeAreaInsets();
@@ -47,7 +46,7 @@ export default function Subscriptions() {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="h-16 px-5 flex-row items-center justify-between z-50">
+      <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
         <View className="flex-row items-center gap-2.5">
           <View className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 items-center justify-center">
             <MaterialIcons name="event-repeat" size={20} color="#B2C5FF" />
@@ -56,23 +55,15 @@ export default function Subscriptions() {
             Recurring Bills
           </Text>
         </View>
-        <Link href={"/add-subscription" as any} asChild>
-          <ScaleButton
-            activeScale={0.88}
-            className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 items-center justify-center shadow-sm"
-          >
-            <MaterialIcons name="add" size={22} color="#B2C5FF" />
-          </ScaleButton>
-        </Link>
-      </View>
+      </AnimatedBox>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* Spend Summary Hero Card */}
-        <Animated.View
-          entering={FadeInDown.duration(400).springify()}
+        <AnimatedBox
+          delay={60}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-purple-500/10 blur-2xl pointer-events-none" />
@@ -99,26 +90,26 @@ export default function Subscriptions() {
               <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
                 Active Bills
               </Text>
-              <Text className="text-sm font-bold text-on-surface">
-                {activeCount} Subscriptions
+              <Text className="text-base font-bold text-on-surface">
+                {activeCount} Active
               </Text>
             </View>
             <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
               <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
-                Yearly Forecast
+                Annual Cost
               </Text>
               <AnimatedCounter
                 value={totalAnnualSpend}
                 prefix="$"
                 decimals={0}
-                className="text-sm font-bold text-on-surface"
+                className="text-base font-bold text-on-surface"
               />
             </View>
           </View>
-        </Animated.View>
+        </AnimatedBox>
 
         {/* Filter Tabs */}
-        <View className="mx-5 mb-5 flex-row gap-2">
+        <AnimatedBox delay={120} className="mx-5 mb-5 flex-row gap-2">
           {[
             { label: "Active", value: "active" as const },
             { label: "All", value: "all" as const },
@@ -146,11 +137,11 @@ export default function Subscriptions() {
               </ScaleButton>
             );
           })}
-        </View>
+        </AnimatedBox>
 
         {/* Subscriptions List */}
-        <View className="px-5 flex-col gap-3.5">
-          {filteredSubs.map((sub, index) => {
+        <AnimatedBox delay={180} className="px-5 flex-col gap-3.5">
+          {filteredSubs.map((sub) => {
             const date = new Date(sub.nextChargeDate);
             const cat = categories.find((c) => c.id === sub.categoryId);
             const formattedDate = date.toLocaleDateString("en-US", {
@@ -159,9 +150,8 @@ export default function Subscriptions() {
             });
 
             return (
-              <Animated.View
+              <View
                 key={sub.id}
-                entering={FadeInDown.delay(index * 70).springify()}
                 className="bg-surface-container rounded-[24px] p-5 border border-outline-variant/30 overflow-hidden shadow-sm relative"
               >
                 {/* Brand Color Aura */}
@@ -237,7 +227,7 @@ export default function Subscriptions() {
                     </ScaleButton>
                   </View>
                 </View>
-              </Animated.View>
+              </View>
             );
           })}
 
@@ -254,7 +244,7 @@ export default function Subscriptions() {
               </Text>
             </View>
           )}
-        </View>
+        </AnimatedBox>
       </ScrollView>
     </View>
   );

@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, ScrollView, Image, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -9,7 +8,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useAppStore } from "@/store/useAppStore";
 import { MaterialIconName } from "@/types";
 import { ScaleButton } from "@/components/ui/ScaleButton";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { AnimatedBox } from "@/components/ui/AnimatedBox";
+import { GrabHandle } from "@/components/ui/GrabHandle";
 
 interface SettingItem {
   id: string;
@@ -21,7 +21,6 @@ interface SettingItem {
 }
 
 export default function Settings() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
@@ -73,9 +72,10 @@ export default function Settings() {
   ];
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background">
+      <GrabHandle />
       {/* Header */}
-      <View className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
+      <AnimatedBox delay={0} className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
         <View className="flex-row items-center gap-3">
           <ScaleButton
             activeScale={0.88}
@@ -88,7 +88,7 @@ export default function Settings() {
             Settings & Profile
           </Text>
         </View>
-      </View>
+      </AnimatedBox>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -96,8 +96,8 @@ export default function Settings() {
       >
         <View className="px-5 py-5 flex-col gap-6">
           {/* User Profile Hero Card */}
-          <Animated.View
-            entering={FadeInDown.duration(400).springify()}
+          <AnimatedBox
+            delay={60}
             className="p-5 bg-surface-container rounded-[28px] border border-white/10 shadow-lg relative overflow-hidden"
           >
             <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
@@ -113,13 +113,15 @@ export default function Settings() {
                   className="w-16 h-16 rounded-2xl border-2 border-primary/40"
                   resizeMode="cover"
                 />
-                <View className="absolute -bottom-1 -right-1 bg-secondary w-4 h-4 rounded-full border-2 border-surface-container" />
+                <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-secondary items-center justify-center border-2 border-surface-container">
+                  <MaterialIcons name="check" size={12} color="#003915" />
+                </View>
               </View>
 
               <View className="flex-1">
                 <View className="flex-row items-center gap-2">
                   <Text
-                    className="text-base font-extrabold text-on-surface"
+                    className="text-lg font-bold text-on-surface"
                     numberOfLines={1}
                   >
                     {displayName}
@@ -166,10 +168,10 @@ export default function Settings() {
                 </Text>
               </View>
             </View>
-          </Animated.View>
+          </AnimatedBox>
 
           {/* General Settings Group */}
-          <View>
+          <AnimatedBox delay={120}>
             <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5 px-1">
               General Preferences
             </Text>
@@ -214,10 +216,10 @@ export default function Settings() {
                 </ScaleButton>
               ))}
             </View>
-          </View>
+          </AnimatedBox>
 
           {/* Security Group */}
-          <View>
+          <AnimatedBox delay={180}>
             <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5 px-1">
               Security & Data
             </Text>
@@ -262,10 +264,13 @@ export default function Settings() {
                 </ScaleButton>
               ))}
             </View>
-          </View>
+          </AnimatedBox>
 
           {/* Bank Sync Coming Soon Card */}
-          <View className="p-5 bg-surface-container-high rounded-[26px] border border-primary/20 relative overflow-hidden shadow-md">
+          <AnimatedBox
+            delay={240}
+            className="p-5 bg-surface-container-high rounded-[26px] border border-primary/20 relative overflow-hidden shadow-md"
+          >
             <View className="absolute -top-10 -right-10 w-32 h-32 bg-primary/15 rounded-full blur-2xl pointer-events-none" />
 
             <View className="flex-row items-center justify-between mb-2">
@@ -303,10 +308,10 @@ export default function Settings() {
                 Join Sync Waitlist
               </Text>
             </ScaleButton>
-          </View>
+          </AnimatedBox>
 
           {/* Sign Out Button */}
-          <View className="pt-2 pb-6 flex-col items-center gap-3">
+          <AnimatedBox delay={300} className="pt-2 pb-6 flex-col items-center gap-3">
             <ScaleButton
               activeScale={0.95}
               className="w-full py-4 px-4 bg-error-container/40 rounded-2xl flex-row items-center justify-center gap-2 border border-error/30 shadow-sm"
@@ -323,7 +328,7 @@ export default function Settings() {
             <Text className="text-[11px] font-medium text-outline">
               Stackly v1.0.0 • All data encrypted locally
             </Text>
-          </View>
+          </AnimatedBox>
         </View>
       </ScrollView>
     </View>

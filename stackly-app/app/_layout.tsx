@@ -1,30 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import "../global.css";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useNavigationContainerRef } from "expo-router";
+import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const { user, isLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
-  const navigationRef = useNavigationContainerRef();
-  const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const rootNavigationState = useRootNavigationState();
 
   useEffect(() => {
-    const unsubscribe = navigationRef?.addListener("state", () => {
-      setIsNavigationReady(true);
-    });
-    return unsubscribe;
-  }, [navigationRef]);
-
-  useEffect(() => {
-    if (isLoading || !isNavigationReady) return;
+    if (isLoading || !rootNavigationState?.key) return;
 
     const inAuthGroup = segments[0] === "(auth)";
 
@@ -33,11 +24,11 @@ export default function RootLayout() {
     } else if (user && inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [user, isLoading, segments, isNavigationReady]);
+  }, [user, isLoading, segments, rootNavigationState?.key]);
 
   useEffect(() => {
     if (!isLoading) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [isLoading]);
 
@@ -57,15 +48,13 @@ export default function RootLayout() {
         <Stack.Screen
           name="(auth)"
           options={{
-            animation: "fade",
-            animationDuration: 200,
+            animation: "none",
           }}
         />
         <Stack.Screen
           name="(tabs)"
           options={{
-            animation: "fade",
-            animationDuration: 220,
+            animation: "none",
           }}
         />
         <Stack.Screen

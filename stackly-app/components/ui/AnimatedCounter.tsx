@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextProps, StyleProp, TextStyle, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 
 export interface AnimatedCounterProps extends TextProps {
   value: number;
@@ -7,6 +8,7 @@ export interface AnimatedCounterProps extends TextProps {
   suffix?: string;
   decimals?: number;
   duration?: number;
+  transitionDuration?: number;
   formatter?: (val: number) => string;
   showDecimalsSmall?: boolean;
   className?: string;
@@ -15,12 +17,38 @@ export interface AnimatedCounterProps extends TextProps {
   decimalStyle?: StyleProp<TextStyle>;
 }
 
+/**
+ * Calculates the base starting point for screen transitions so that
+ * only the hundreds / sub-thousands animate while high-order digits remain stable.
+ */
+function getHundredsBase(val: number): number {
+  if (val <= 0) return 0;
+  if (val >= 1000) {
+    // Keep thousands intact, animate the hundreds (e.g. $12,450 -> starts from $12,000)
+    return Math.floor(val / 1000) * 1000;
+  }
+  if (val >= 100) {
+    // For values under 1000, start from the lower hundred (e.g. $450 -> starts from $400)
+    return Math.floor(val / 100) * 100;
+  }
+  return 0;
+}
+
+/**
+ * Framer Motion easeOutExpo easing curve:
+ * Produces crisp, snappy initial movement that decelerates smoothly into place.
+ */
+function framerEaseOutExpo(t: number): number {
+  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
 export function AnimatedCounter({
   value,
   prefix = '$',
   suffix = '',
   decimals = 2,
-  duration = 900,
+  duration = 850,
+  transitionDuration = 450,
   formatter,
   showDecimalsSmall = false,
   className,
@@ -29,28 +57,42 @@ export function AnimatedCounter({
   decimalStyle,
   ...textProps
 }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState<number>(value);
-  const startValueRef = useRef<number>(value);
-  const startTimeRef = useRef<number | null>(null);
+  const isFocused = useIsFocused();
+  const isInitialMount = useRef(true);
+  const wasFocusedRef = useRef(false);
+
+  const [displayValue, setDisplayValue] = useState<number>(0);
+  const startValueRef = useRef<number>(0);
   const targetValueRef = useRef<number>(value);
+  const startTimeRef = useRef<number | null>(null);
   const reqIdRef = useRef<number | null>(null);
+  const lastValueRef = useRef<number>(value);
 
-  useEffect(() => {
-    startValueRef.current = displayValue;
-    targetValueRef.current = value;
-    startTimeRef.current = null;
+  const startAnimation = (from: number, to: number, animDuration: number) => {
+    if (reqIdRef.current) {
+      cancelAnimationFrame(reqIdRef.current);
+      reqIdRef.current = null;
+    }
 
-    if (startValueRef.current === value) {
+    if (from === to) {
+      setDisplayValue(to);
       return;
     }
 
+    startValueRef.current = from;
+    targetValueRef.current = to;
+    startTimeRef.current = null;
+    setDisplayValue(from);
+
     const animate = (timestamp: number) => {
       if (!startTimeRef.current) startTimeRef.current = timestamp;
-      const progress = Math.min((timestamp - startTimeRef.current) / duration, 1);
+      const elapsed = timestamp - startTimeRef.current;
+      const progress = Math.min(elapsed / animDuration, 1);
 
-      // Ease out cubic: 1 - Math.pow(1 - progress, 3)
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const current = startValueRef.current + (targetValueRef.current - startValueRef.current) * easeProgress;
+      const easeProgress = framerEaseOutExpo(progress);
+      const current =
+        startValueRef.current +
+        (targetValueRef.current - startValueRef.current) * easeProgress;
 
       setDisplayValue(current);
 
@@ -58,17 +100,47 @@ export function AnimatedCounter({
         reqIdRef.current = requestAnimationFrame(animate);
       } else {
         setDisplayValue(targetValueRef.current);
+        reqIdRef.current = null;
       }
     };
 
     reqIdRef.current = requestAnimationFrame(animate);
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      if (isInitialMount.current) {
+        // ONCE ONLY on initial mount: count from 0 to current amount
+        isInitialMount.current = false;
+        wasFocusedRef.current = true;
+        lastValueRef.current = value;
+        startAnimation(0, value, duration);
+      } else if (!wasFocusedRef.current) {
+        // ON EVERY SCREEN TRANSITION: animate only the hundreds place
+        wasFocusedRef.current = true;
+        lastValueRef.current = value;
+        const hundredsBase = getHundredsBase(value);
+        startAnimation(hundredsBase, value, transitionDuration);
+      } else if (lastValueRef.current !== value) {
+        // WHEN VALUE UPDATES while active on screen: animate from previous display value to new value
+        lastValueRef.current = value;
+        startAnimation(displayValue, value, 550);
+      }
+    } else {
+      wasFocusedRef.current = false;
+      if (reqIdRef.current) {
+        cancelAnimationFrame(reqIdRef.current);
+        reqIdRef.current = null;
+      }
+    }
 
     return () => {
       if (reqIdRef.current) {
         cancelAnimationFrame(reqIdRef.current);
+        reqIdRef.current = null;
       }
     };
-  }, [value, duration]);
+  }, [isFocused, value, duration, transitionDuration]);
 
   const formatNumber = (num: number): { whole: string; decimal: string; full: string } => {
     if (formatter) {
@@ -80,8 +152,8 @@ export function AnimatedCounter({
     const absVal = Math.abs(num);
     const fixedStr = absVal.toFixed(decimals);
     const [wholePart, decPart] = fixedStr.split('.');
-    
-    // Add commas
+
+    // Add comma grouping (e.g. 12,450)
     const withCommas = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     const formattedWhole = `${isNegative ? '-' : ''}${prefix}${withCommas}`;
     const formattedDecimal = decPart !== undefined && decimals > 0 ? `.${decPart}` : '';

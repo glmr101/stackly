@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, TextInput } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Link } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
+import { AnimatedBox } from "@/components/ui/AnimatedBox";
 
 export default function Transactions() {
   const insets = useSafeAreaInsets();
@@ -58,7 +58,7 @@ export default function Transactions() {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Top Header */}
-      <View className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
+      <AnimatedBox delay={0} className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
         <View className="flex-row items-center gap-3">
           <ScaleButton
             activeScale={0.88}
@@ -80,123 +80,124 @@ export default function Transactions() {
             <MaterialIcons name="add" size={22} color="#B2C5FF" />
           </ScaleButton>
         </Link>
-      </View>
+      </AnimatedBox>
 
-      {/* Search Input Bar */}
-      <View className="px-5 pt-4 pb-2">
-        <View className="bg-surface-container-low rounded-2xl px-4 py-1.5 flex-row items-center gap-2.5 border border-outline-variant/30">
-          <MaterialIcons name="search" size={20} color="#C3C6D6" />
-          <TextInput
-            className="flex-1 text-on-surface text-sm h-11"
-            placeholder="Search payee, category, note..."
-            placeholderTextColor="#C3C6D680"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <ScaleButton
-              activeScale={0.88}
-              onPress={() => setSearchQuery("")}
-              hitSlop={8}
-            >
-              <MaterialIcons name="close" size={18} color="#C3C6D6" />
-            </ScaleButton>
-          )}
-        </View>
-      </View>
-
-      {/* Filter Chips */}
-      <View className="px-5 py-2">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
-        >
-          {filterOptions.map((f) => {
-            const isSelected = filterType === f.value;
-            return (
+      {/* Search & Filter Controls */}
+      <AnimatedBox delay={60}>
+        {/* Search Input Bar */}
+        <View className="px-5 pt-4 pb-2">
+          <View className="bg-surface-container-low rounded-2xl px-4 py-1.5 flex-row items-center gap-2.5 border border-outline-variant/30">
+            <MaterialIcons name="search" size={20} color="#C3C6D6" />
+            <TextInput
+              className="flex-1 text-on-surface text-sm h-11"
+              placeholder="Search payee, category, note..."
+              placeholderTextColor="#C3C6D680"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
               <ScaleButton
-                key={f.value}
-                activeScale={0.92}
-                onPress={() => setFilterType(f.value)}
-                className={`px-4 py-2 rounded-full border ${
-                  isSelected
-                    ? "bg-primary border-primary"
-                    : "bg-surface-container border-outline-variant/30"
-                }`}
+                activeScale={0.88}
+                onPress={() => setSearchQuery("")}
+                hitSlop={8}
               >
-                <Text
-                  className={`text-xs font-bold ${
-                    isSelected ? "text-on-primary" : "text-on-surface-variant"
+                <MaterialIcons name="close" size={18} color="#C3C6D6" />
+              </ScaleButton>
+            )}
+          </View>
+        </View>
+
+        {/* Filter Chips */}
+        <View className="px-5 py-2">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+          >
+            {filterOptions.map((f) => {
+              const isSelected = filterType === f.value;
+              return (
+                <ScaleButton
+                  key={f.value}
+                  activeScale={0.92}
+                  onPress={() => setFilterType(f.value)}
+                  className={`px-4 py-2 rounded-full border ${
+                    isSelected
+                      ? "bg-primary border-primary"
+                      : "bg-surface-container border-outline-variant/30"
                   }`}
                 >
-                  {f.label}
-                </Text>
-              </ScaleButton>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Count & Flow Summary */}
-      <View className="px-5 py-2 flex-row items-center justify-between">
-        <Text className="text-xs font-medium text-on-surface-variant">
-          Showing {filteredTransactions.length} transaction
-          {filteredTransactions.length === 1 ? "" : "s"}
-        </Text>
-        <View className="flex-row items-center gap-1.5">
-          <Text className="text-xs text-on-surface-variant font-medium">
-            Net:
-          </Text>
-          <AnimatedCounter
-            value={totalFilteredAmount}
-            prefix="$"
-            decimals={2}
-            className={`text-xs font-bold ${
-              totalFilteredAmount >= 0 ? "text-secondary" : "text-error"
-            }`}
-          />
+                  <Text
+                    className={`text-xs font-bold ${
+                      isSelected ? "text-on-primary" : "text-on-surface-variant"
+                    }`}
+                  >
+                    {f.label}
+                  </Text>
+                </ScaleButton>
+              );
+            })}
+          </ScrollView>
         </View>
-      </View>
+
+        {/* Count & Flow Summary */}
+        <View className="px-5 py-2 flex-row items-center justify-between">
+          <Text className="text-xs font-medium text-on-surface-variant">
+            Showing {filteredTransactions.length} transaction
+            {filteredTransactions.length === 1 ? "" : "s"}
+          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <Text className="text-xs text-on-surface-variant font-medium">
+              Net:
+            </Text>
+            <AnimatedCounter
+              value={totalFilteredAmount}
+              prefix="$"
+              decimals={2}
+              className={`text-xs font-bold ${
+                totalFilteredAmount >= 0 ? "text-secondary" : "text-error"
+              }`}
+            />
+          </View>
+        </View>
+      </AnimatedBox>
 
       {/* Transactions List */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
-      >
-        <View className="flex-col gap-2.5 pt-2">
-          {filteredTransactions.map((tx, index) => {
-            const isIncome = tx.type === "income";
-            const isExpense = tx.type === "expense";
-            const cat = categories.find((c) => c.id === tx.categoryId);
-            const account = accounts.find((a) => a.id === tx.accountId);
+      <AnimatedBox delay={120} className="flex-1">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
+        >
+          <View className="flex-col gap-2.5 pt-2">
+            {filteredTransactions.map((tx) => {
+              const isIncome = tx.type === "income";
+              const isExpense = tx.type === "expense";
+              const cat = categories.find((c) => c.id === tx.categoryId);
+              const account = accounts.find((a) => a.id === tx.accountId);
 
-            let iconBg = "bg-surface-container-high";
-            let iconColor = "#C3C6D6";
-            let amountClass = "text-on-surface";
+              let iconBg = "bg-surface-container-high";
+              let iconColor = "#C3C6D6";
+              let amountClass = "text-on-surface";
 
-            if (isIncome) {
-              iconBg = "bg-secondary/15";
-              iconColor = "#4DE082";
-              amountClass = "text-secondary";
-            } else if (isExpense) {
-              iconBg = "bg-error/15";
-              iconColor = "#FFB4AB";
-              amountClass = "text-error";
-            }
+              if (isIncome) {
+                iconBg = "bg-secondary/15";
+                iconColor = "#4DE082";
+                amountClass = "text-secondary";
+              } else if (isExpense) {
+                iconBg = "bg-error/15";
+                iconColor = "#FFB4AB";
+                amountClass = "text-error";
+              }
 
-            const txDate = new Date(tx.date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            });
+              const txDate = new Date(tx.date).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
 
-            return (
-              <Animated.View
-                key={tx.id}
-                entering={FadeInDown.delay(Math.min(index * 40, 400)).springify()}
-              >
+              return (
                 <ScaleButton
+                  key={tx.id}
                   activeScale={0.97}
                   className="flex-row items-center justify-between bg-surface-container p-4 rounded-[22px] shadow-sm border border-outline-variant/25"
                 >
@@ -230,36 +231,39 @@ export default function Transactions() {
                   </View>
 
                   <View className="items-end">
-                    <Text className={`text-base font-extrabold ${amountClass}`}>
-                      {isIncome ? "+" : "-"}${tx.amount.toFixed(2)}
-                    </Text>
+                    <AnimatedCounter
+                      value={tx.amount}
+                      prefix={isIncome ? "+$" : "-$"}
+                      decimals={2}
+                      className={`text-base font-extrabold ${amountClass}`}
+                    />
                     <Text className="text-[11px] text-on-surface-variant font-medium mt-0.5">
                       {txDate}
                     </Text>
                   </View>
                 </ScaleButton>
-              </Animated.View>
-            );
-          })}
+              );
+            })}
 
-          {filteredTransactions.length === 0 && (
-            <View className="py-20 items-center justify-center bg-surface-container rounded-[28px] border border-outline-variant/20 mt-4">
-              <MaterialIcons
-                name="receipt-long"
-                size={44}
-                color="#C3C6D6"
-                style={{ opacity: 0.4 }}
-              />
-              <Text className="text-base font-bold text-on-surface mt-3">
-                No Transactions Found
-              </Text>
-              <Text className="text-xs text-on-surface-variant mt-1 text-center px-6">
-                Try changing your search keywords or switching filters.
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+            {filteredTransactions.length === 0 && (
+              <View className="py-20 items-center justify-center bg-surface-container rounded-[28px] border border-outline-variant/20 mt-4">
+                <MaterialIcons
+                  name="receipt-long"
+                  size={44}
+                  color="#C3C6D6"
+                  style={{ opacity: 0.4 }}
+                />
+                <Text className="text-base font-bold text-on-surface mt-3">
+                  No Transactions Found
+                </Text>
+                <Text className="text-xs text-on-surface-variant mt-1 text-center px-6">
+                  Try changing your search keywords or switching filters.
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </AnimatedBox>
     </View>
   );
 }

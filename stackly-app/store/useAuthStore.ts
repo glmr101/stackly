@@ -18,10 +18,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 // Set up the Firebase observer with error and timeout safety
 try {
-  onAuthStateChanged(auth, (user) => {
-    useAuthStore.getState().setUser(user);
-  });
-} catch {
+  onAuthStateChanged(
+    auth,
+    (user) => {
+      useAuthStore.getState().setUser(user);
+    },
+    (error) => {
+      console.warn("Auth state observer error:", error);
+      useAuthStore.getState().setLoading(false);
+    }
+  );
+} catch (error) {
+  console.warn("Failed to initialize auth observer:", error);
   useAuthStore.getState().setLoading(false);
 }
 
@@ -30,4 +38,5 @@ setTimeout(() => {
   if (useAuthStore.getState().isLoading) {
     useAuthStore.getState().setLoading(false);
   }
-}, 2500);
+}, 1500);
+

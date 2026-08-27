@@ -8,16 +8,15 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ScaleButton } from "@/components/ui/ScaleButton";
+import { GrabHandle } from "@/components/ui/GrabHandle";
 
 type BillingCycle = "monthly" | "yearly";
 
 export default function AddSubscription() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const addSubscription = useAppStore((state) => state.addSubscription);
@@ -64,7 +63,8 @@ export default function AddSubscription() {
   };
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background">
+      <GrabHandle />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"

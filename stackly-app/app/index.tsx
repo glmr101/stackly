@@ -1,11 +1,29 @@
+import { Redirect } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function Index() {
-  // This screen is only shown briefly while _layout.tsx
-  // determines auth state and redirects accordingly.
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0f131d" }}>
-      <ActivityIndicator color="#b2c5ff" />
-    </View>
-  );
+  const { user, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#090B10",
+        }}
+      >
+        <ActivityIndicator color="#B2C5FF" size="large" />
+      </View>
+    );
+  }
+
+  if (user) {
+    return <Redirect href="/(tabs)" />;
+  }
+
+  return <Redirect href="/(auth)/sign-in" />;
 }
+
