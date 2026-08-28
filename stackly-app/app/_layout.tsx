@@ -3,6 +3,7 @@ import "../global.css";
 import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAuthStore } from "@/store/useAuthStore";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -33,7 +34,7 @@ export default function RootLayout() {
   }, [isLoading]);
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#090B10" }}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -111,6 +112,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }

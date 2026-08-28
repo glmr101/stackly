@@ -8,7 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ScaleButton } from "@/components/ui/ScaleButton";
@@ -18,13 +18,19 @@ type TransactionType = "expense" | "income" | "transfer";
 
 export default function AddTransaction() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ type?: TransactionType }>();
 
   const storeAccounts = useAppStore((state) => state.accounts);
   const storeCategories = useAppStore((state) => state.categories);
   const addTransaction = useAppStore((state) => state.addTransaction);
   const currency = useAppStore((state) => state.currency);
 
-  const [type, setType] = useState<TransactionType>("expense");
+  const initialType: TransactionType =
+    params.type === "income" || params.type === "transfer" || params.type === "expense"
+      ? params.type
+      : "expense";
+
+  const [type, setType] = useState<TransactionType>(initialType);
   const [amount, setAmount] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState(
     storeAccounts[0]?.id || ""

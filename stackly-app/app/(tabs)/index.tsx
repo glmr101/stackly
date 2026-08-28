@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,6 +15,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
+import { StackedCardCarousel, CardItem } from "@/components/ui/StackedCardCarousel";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -24,9 +25,55 @@ export default function Home() {
   const transactions = useAppStore((state) => state.transactions);
   const subscriptions = useAppStore((state) => state.subscriptions);
   const categories = useAppStore((state) => state.categories);
+  const currency = useAppStore((state) => state.currency);
+  const postSubscription = useAppStore((state) => state.postSubscription);
+  const checkAndAutoPostDueSubscriptions = useAppStore(
+    (state) => state.checkAndAutoPostDueSubscriptions
+  );
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const currencySymbol = currency?.symbol || "$";
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthName = now.toLocaleDateString("en-US", { month: "long" });
+
+  const cardItems: CardItem[] = accounts.map((acc, index) => {
+    let cardType: CardItem["cardType"] = "generic";
+    if (acc.type === "credit card") cardType = "visa";
+    else if (acc.type === "bank") cardType = "mastercard";
+    else if (acc.type === "investment") cardType = "amex";
+
+    const bgColors = ["#161B26", "#1E293B", "#0F172A", "#1A2332", "#1F2937"];
+    const secondaryColors = ["#252F48", "#334155", "#1E293B", "#2A374A", "#374151"];
+
+    return {
+      id: acc.id,
+      bankName: acc.name || acc.institution,
+      cardType,
+      cardNumber: `•••• ${acc.id.replace(/\D/g, "").slice(-4) || "8421"}`,
+      cardHolder: (acc.institution || acc.name).toUpperCase(),
+      expiryDate: "12/28",
+      balance: acc.balance,
+      backgroundColor: bgColors[index % bgColors.length],
+      secondaryColor: secondaryColors[index % secondaryColors.length],
+      textColor: "#FFFFFF",
+    };
+  });
+
+  // Auto-post any overdue subscriptions on mount
+  useEffect(() => {
+    checkAndAutoPostDueSubscriptions();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    checkAndAutoPostDueSubscriptions();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 600);
+  }, [checkAndAutoPostDueSubscriptions]);
 
   let incomeThisMonth = 0;
   let expensesThisMonth = 0;
@@ -84,19 +131,27 @@ export default function Home() {
     )
     .slice(0, 3)
     .map((sub) => {
-      const date = new Date(sub.nextChargeDate);
+      const chargeDate = new Date(sub.nextChargeDate);
+      const isOverdue = chargeDate.getTime() < Date.now();
       return {
         id: sub.id,
         name: sub.name,
         amount: sub.amount,
-        dueDate: date.toLocaleDateString("en-US", {
+        dueDate: chargeDate.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
+        isOverdue,
         icon: sub.icon,
         color: sub.color || "#B2C5FF",
       };
     });
+
+  const handlePostBill = (subId: string) => {
+    if (accounts.length > 0) {
+      postSubscription(subId, accounts[0].id);
+    }
+  };
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -105,6 +160,9 @@ export default function Home() {
         <View>
           <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
             Stackly Overview
+          </Text>
+          <Text className="text-xs text-on-surface-variant font-medium">
+            {monthName} {currentYear}
           </Text>
         </View>
 
@@ -121,6 +179,14 @@ export default function Home() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#B2C5FF"
+            colors={["#B2C5FF", "#4DE082"]}
+          />
+        }
       >
         {/* Hero Net Worth Card */}
         <AnimatedBox
@@ -139,20 +205,24 @@ export default function Home() {
             <View className="flex-row items-center gap-1.5 bg-surface-container-highest/80 px-2.5 py-1 rounded-full border border-white/5">
               <View className="relative w-2 h-2 items-center justify-center">
                 <Animated.View
-                  className={`absolute w-full h-full rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
-                    }`}
+                  className={`absolute w-full h-full rounded-full ${
+                    trendIsPositive ? "bg-secondary" : "bg-error"
+                  }`}
                   style={animatedPulseStyle}
                 />
                 <View
-                  className={`w-1.5 h-1.5 rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
-                    }`}
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    trendIsPositive ? "bg-secondary" : "bg-error"
+                  }`}
                 />
               </View>
               <Text
-                className={`text-[11px] font-bold ${trendIsPositive ? "text-secondary" : "text-error"
-                  }`}
+                className={`text-[11px] font-bold ${
+                  trendIsPositive ? "text-secondary" : "text-error"
+                }`}
               >
-                {trendIsPositive ? "+" : "-"}$
+                {trendIsPositive ? "+" : "-"}
+                {currencySymbol}
                 {Math.abs(netWorthTrend).toLocaleString("en-US", {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
@@ -172,7 +242,7 @@ export default function Home() {
           </View>
 
           <Text className="text-xs text-on-surface-variant font-medium mt-1">
-            Net cash flow calculated for this current month
+            Net cash flow calculated for {monthName}
           </Text>
 
           {/* Cash Flow Summary Badges */}
@@ -218,7 +288,10 @@ export default function Home() {
           delay={60}
           className="mx-5 mb-7 flex-row items-center justify-between gap-3"
         >
-          <Link href={"/add-transaction" as any} asChild>
+          <Link
+            href={{ pathname: "/add-transaction", params: { type: "income" } } as any}
+            asChild
+          >
             <ScaleButton
               activeScale={0.92}
               className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
@@ -232,7 +305,10 @@ export default function Home() {
             </ScaleButton>
           </Link>
 
-          <Link href={"/add-transaction" as any} asChild>
+          <Link
+            href={{ pathname: "/add-transaction", params: { type: "expense" } } as any}
+            asChild
+          >
             <ScaleButton
               activeScale={0.92}
               className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
@@ -246,7 +322,10 @@ export default function Home() {
             </ScaleButton>
           </Link>
 
-          <Link href={"/add-transaction" as any} asChild>
+          <Link
+            href={{ pathname: "/add-transaction", params: { type: "transfer" } } as any}
+            asChild
+          >
             <ScaleButton
               activeScale={0.92}
               className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
@@ -275,12 +354,12 @@ export default function Home() {
           </Link>
         </AnimatedBox>
 
-        {/* Accounts Horizontal Carousel */}
+        {/* Accounts Stacked Cards Carousel */}
         <AnimatedBox delay={80} className="mb-7">
-          <View className="px-5 mb-3.5 flex-row items-center justify-between">
+          <View className="px-5 mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">
-                Accounts
+                Accounts & Cards
               </Text>
               <View className="bg-surface-container-high px-2 py-0.5 rounded-full">
                 <Text className="text-[11px] font-bold text-primary">
@@ -288,112 +367,87 @@ export default function Home() {
                 </Text>
               </View>
             </View>
-            <Link href="/accounts" asChild>
-              <ScaleButton activeScale={0.92} hitSlop={12}>
-                <Text className="text-xs font-semibold text-primary">
-                  View all →
-                </Text>
-              </ScaleButton>
-            </Link>
+            <View className="flex-row items-center gap-3">
+              <Link href={"/add-account" as any} asChild>
+                <ScaleButton activeScale={0.92} hitSlop={8} className="flex-row items-center gap-1">
+                  <MaterialIcons name="add" size={16} color="#B2C5FF" />
+                  <Text className="text-xs font-semibold text-primary">
+                    Add
+                  </Text>
+                </ScaleButton>
+              </Link>
+              <Link href="/accounts" asChild>
+                <ScaleButton activeScale={0.92} hitSlop={8}>
+                  <Text className="text-xs font-semibold text-primary">
+                    View all →
+                  </Text>
+                </ScaleButton>
+              </Link>
+            </View>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
-            decelerationRate="fast"
-            snapToInterval={224}
-            snapToAlignment="start"
-          >
-            {accounts.map((account) => {
-              const isPrimary = account.type === "bank";
-              return (
-                <Link key={account.id} href="/accounts" asChild>
-                  <ScaleButton
-                    activeScale={0.94}
-                    className={`w-[210px] p-4 rounded-[22px] justify-between h-36 overflow-hidden border shadow-md relative ${isPrimary
-                      ? "bg-[#1E293B] border-primary/30"
-                      : "bg-surface-container border-outline-variant/30"
-                      }`}
-                  >
-                    {/* Background Watermark Icon */}
-                    <View className="absolute right-[-14px] bottom-[-14px] opacity-10">
-                      <MaterialIcons
-                        name={account.icon as any}
-                        size={90}
-                        color={isPrimary ? "#B2C5FF" : "#C3C6D6"}
-                      />
-                    </View>
-
-                    {/* Card Top */}
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-2">
-                        <View
-                          className={`w-7 h-7 rounded-lg items-center justify-center ${isPrimary ? "bg-primary/20" : "bg-surface-container-highest"
-                            }`}
-                        >
-                          <MaterialIcons
-                            name={account.icon as any}
-                            size={16}
-                            color={isPrimary ? "#B2C5FF" : "#C3C6D6"}
-                          />
-                        </View>
-                        <Text
-                          numberOfLines={1}
-                          className="text-xs font-semibold text-on-surface max-w-[100px]"
-                        >
-                          {account.name}
-                        </Text>
-                      </View>
-                      <View className="bg-white/10 px-2 py-0.5 rounded-full">
-                        <Text className="text-[10px] font-medium text-on-surface-variant capitalize">
-                          {account.type}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Card Balance */}
-                    <View>
-                      <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
-                        Balance
-                      </Text>
-                      <AnimatedCounter
-                        value={account.balance}
-                        prefix="$"
-                        decimals={2}
-                        className="text-lg font-bold text-on-surface tracking-tight"
-                      />
-                    </View>
-                  </ScaleButton>
-                </Link>
-              );
-            })}
-          </ScrollView>
+          {cardItems.length > 0 ? (
+            <View className="px-5">
+              <StackedCardCarousel
+                cards={cardItems}
+                currencySymbol={currencySymbol}
+                onCardPress={() => router.push("/accounts")}
+              />
+            </View>
+          ) : (
+            <View className="mx-5 p-6 bg-surface-container rounded-[24px] border border-outline-variant/30 items-center justify-center">
+              <MaterialIcons
+                name="account-balance-wallet"
+                size={36}
+                color="#C3C6D6"
+                style={{ opacity: 0.6 }}
+              />
+              <Text className="text-sm font-bold text-on-surface mt-2">
+                No Accounts Added
+              </Text>
+              <Text className="text-xs text-on-surface-variant text-center mt-1 mb-4">
+                Add your bank, card, or cash accounts to track total net worth.
+              </Text>
+              <Link href={"/add-account" as any} asChild>
+                <ScaleButton
+                  activeScale={0.92}
+                  className="px-4 py-2 bg-primary rounded-xl flex-row items-center gap-1.5"
+                >
+                  <MaterialIcons name="add" size={18} color="#002C72" />
+                  <Text className="text-xs font-extrabold text-on-primary">
+                    Add Account
+                  </Text>
+                </ScaleButton>
+              </Link>
+            </View>
+          )}
         </AnimatedBox>
 
         {/* Upcoming Bills */}
-        {upcomingBills.length > 0 && (
-          <AnimatedBox delay={110} className="mb-7 px-5">
-            <View className="flex-row items-center justify-between mb-3.5">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-base font-bold text-on-surface tracking-tight">
-                  Upcoming Bills
-                </Text>
+        <AnimatedBox delay={110} className="mb-7 px-5">
+          <View className="flex-row items-center justify-between mb-3.5">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-base font-bold text-on-surface tracking-tight">
+                Upcoming Bills
+              </Text>
+              {upcomingBills.length > 0 && (
                 <View className="bg-secondary/15 px-2 py-0.5 rounded-full">
                   <Text className="text-[11px] font-bold text-secondary">
                     Due Soon
                   </Text>
                 </View>
-              </View>
-              <Link href="/subscriptions" asChild>
-                <ScaleButton activeScale={0.92} hitSlop={12}>
-                  <Text className="text-xs font-semibold text-primary">
-                    Manage →
-                  </Text>
-                </ScaleButton>
-              </Link>
+              )}
             </View>
+            <Link href="/subscriptions" asChild>
+              <ScaleButton activeScale={0.92} hitSlop={12}>
+                <Text className="text-xs font-semibold text-primary">
+                  Manage →
+                </Text>
+              </ScaleButton>
+            </Link>
+          </View>
 
+          {upcomingBills.length > 0 ? (
             <View className="bg-surface-container rounded-[24px] p-4 shadow-sm border border-outline-variant/30 flex-col gap-3">
               {upcomingBills.map((bill) => (
                 <View
@@ -415,11 +469,16 @@ export default function Home() {
                       <Text className="text-sm font-semibold text-on-surface">
                         {bill.name}
                       </Text>
-                      <Text className="text-xs text-on-surface-variant font-medium">
-                        Due {bill.dueDate}
+                      <Text
+                        className={`text-xs font-medium ${
+                          bill.isOverdue ? "text-error font-bold" : "text-on-surface-variant"
+                        }`}
+                      >
+                        {bill.isOverdue ? "Overdue" : `Due ${bill.dueDate}`}
                       </Text>
                     </View>
                   </View>
+
                   <View className="items-end">
                     <AnimatedCounter
                       value={bill.amount}
@@ -427,17 +486,43 @@ export default function Home() {
                       decimals={2}
                       className="text-sm font-bold text-on-surface"
                     />
-                    <View className="bg-surface-container-highest px-2 py-0.5 rounded-full mt-0.5">
-                      <Text className="text-[10px] font-medium text-on-surface-variant">
-                        Auto-pay
+                    <ScaleButton
+                      activeScale={0.9}
+                      className="px-2.5 py-0.5 rounded-full bg-primary/15 border border-primary/25 flex-row items-center gap-1 mt-1"
+                      onPress={() => handlePostBill(bill.id)}
+                    >
+                      <MaterialIcons name="receipt-long" size={12} color="#B2C5FF" />
+                      <Text className="text-[10px] font-bold text-primary">
+                        Post
                       </Text>
-                    </View>
+                    </ScaleButton>
                   </View>
                 </View>
               ))}
             </View>
-          </AnimatedBox>
-        )}
+          ) : (
+            <View className="bg-surface-container rounded-[24px] p-5 shadow-sm border border-outline-variant/30 items-center justify-center">
+              <MaterialIcons name="event-available" size={32} color="#C3C6D6" style={{ opacity: 0.5 }} />
+              <Text className="text-xs font-bold text-on-surface mt-2">
+                No Upcoming Bills
+              </Text>
+              <Text className="text-[11px] text-on-surface-variant text-center mt-0.5 mb-3">
+                All subscriptions are settled or none are scheduled.
+              </Text>
+              <Link href={"/add-subscription" as any} asChild>
+                <ScaleButton
+                  activeScale={0.92}
+                  className="px-3.5 py-1.5 bg-primary/15 border border-primary/25 rounded-xl flex-row items-center gap-1"
+                >
+                  <MaterialIcons name="add" size={14} color="#B2C5FF" />
+                  <Text className="text-xs font-bold text-primary">
+                    Add Bill
+                  </Text>
+                </ScaleButton>
+              </Link>
+            </View>
+          )}
+        </AnimatedBox>
 
         {/* Recent Activity */}
         <AnimatedBox delay={140} className="px-5">
@@ -458,20 +543,27 @@ export default function Home() {
             {transactions.slice(0, 5).map((tx) => {
               const isIncome = tx.type === "income";
               const isExpense = tx.type === "expense";
+              const isTransfer = tx.type === "transfer";
               const cat = categories.find((c) => c.id === tx.categoryId);
+              const sourceAcc = accounts.find((a) => a.id === tx.accountId);
 
-              let iconBg = "bg-surface-container-high";
-              let iconColor = "#C3C6D6";
-              let amountClass = "text-on-surface";
+              let iconBg = "bg-primary/15";
+              let iconColor = "#B2C5FF";
+              let amountClass = "text-primary";
+              let prefix = "$";
 
               if (isIncome) {
                 iconBg = "bg-secondary/15";
                 iconColor = "#4DE082";
                 amountClass = "text-secondary";
+                prefix = "+$";
               } else if (isExpense) {
                 iconBg = "bg-error/15";
                 iconColor = "#FFB4AB";
                 amountClass = "text-error";
+                prefix = "-$";
+              } else if (isTransfer) {
+                prefix = "$";
               }
 
               const txDate = new Date(tx.date).toLocaleDateString("en-US", {
@@ -490,7 +582,11 @@ export default function Home() {
                         className={`w-11 h-11 rounded-2xl items-center justify-center ${iconBg}`}
                       >
                         <MaterialIcons
-                          name={(cat?.icon || "receipt") as any}
+                          name={
+                            isTransfer
+                              ? "swap-horiz"
+                              : (cat?.icon || "receipt") as any
+                          }
                           size={22}
                           color={iconColor}
                         />
@@ -503,7 +599,7 @@ export default function Home() {
                           {tx.payee}
                         </Text>
                         <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                          {cat?.name || "Transfer"} • {txDate}
+                          {isTransfer ? "Transfer" : cat?.name || "General"} • {sourceAcc?.name || "Account"} • {txDate}
                         </Text>
                       </View>
                     </View>
@@ -511,7 +607,7 @@ export default function Home() {
                     <View className="items-end">
                       <AnimatedCounter
                         value={tx.amount}
-                        prefix={isIncome ? "+$" : "-$"}
+                        prefix={prefix}
                         decimals={2}
                         className={`text-sm font-extrabold ${amountClass}`}
                       />
@@ -529,9 +625,26 @@ export default function Home() {
                   color="#C3C6D6"
                   style={{ opacity: 0.5 }}
                 />
-                <Text className="text-sm text-on-surface-variant font-medium mt-2">
-                  No recent activity
+                <Text className="text-sm font-bold text-on-surface mt-2">
+                  No Recent Activity
                 </Text>
+                <Text className="text-xs text-on-surface-variant font-medium mt-1 mb-4">
+                  Log your expenses and income to see transactions here.
+                </Text>
+                <Link
+                  href={{ pathname: "/add-transaction", params: { type: "expense" } } as any}
+                  asChild
+                >
+                  <ScaleButton
+                    activeScale={0.92}
+                    className="px-4 py-2 bg-primary rounded-xl flex-row items-center gap-1.5"
+                  >
+                    <MaterialIcons name="add" size={18} color="#002C72" />
+                    <Text className="text-xs font-extrabold text-on-primary">
+                      Log Transaction
+                    </Text>
+                  </ScaleButton>
+                </Link>
               </View>
             )}
           </View>

@@ -20,6 +20,7 @@ interface AppState {
   addSubscription: (subscription: Omit<Subscription, 'id'>) => void;
   toggleSubscription: (id: string) => void;
   postSubscription: (id: string, accountId: string) => void;
+  checkAndAutoPostDueSubscriptions: () => void;
 
   setBudgetGoal: (goal: Omit<BudgetGoal, 'id'> | BudgetGoal) => void;
   addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
@@ -139,6 +140,61 @@ export const useAppStore = create<AppState>()(
 
           return {
             transactions: [newTransaction, ...state.transactions],
+            accounts: updatedAccounts,
+            subscriptions: updatedSubscriptions,
+          };
+        }),
+
+      checkAndAutoPostDueSubscriptions: () =>
+        set((state) => {
+          if (state.accounts.length === 0) return state;
+          const now = new Date().getTime();
+          const dueSubs = state.subscriptions.filter(
+            (sub) => sub.active && new Date(sub.nextChargeDate).getTime() <= now
+          );
+
+          if (dueSubs.length === 0) return state;
+
+          const defaultAccountId = state.accounts[0].id;
+          const newTransactions: Transaction[] = [];
+          let updatedAccounts = [...state.accounts];
+          const updatedSubscriptions = [...state.subscriptions];
+
+          dueSubs.forEach((sub, idx) => {
+            newTransactions.push({
+              id: `t${Date.now() + idx}`,
+              type: 'expense',
+              amount: sub.amount,
+              payee: sub.name,
+              categoryId: sub.categoryId,
+              date: new Date().toISOString(),
+              accountId: defaultAccountId,
+            });
+
+            updatedAccounts = updatedAccounts.map((acc) =>
+              acc.id === defaultAccountId
+                ? { ...acc, balance: acc.balance - sub.amount }
+                : acc
+            );
+
+            const nextDate = new Date(sub.nextChargeDate);
+            if (sub.billingCycle === 'monthly') {
+              nextDate.setMonth(nextDate.getMonth() + 1);
+            } else {
+              nextDate.setFullYear(nextDate.getFullYear() + 1);
+            }
+
+            const subIdx = updatedSubscriptions.findIndex((s) => s.id === sub.id);
+            if (subIdx !== -1) {
+              updatedSubscriptions[subIdx] = {
+                ...updatedSubscriptions[subIdx],
+                nextChargeDate: nextDate.toISOString(),
+              };
+            }
+          });
+
+          return {
+            transactions: [...newTransactions, ...state.transactions],
             accounts: updatedAccounts,
             subscriptions: updatedSubscriptions,
           };
