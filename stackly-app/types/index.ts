@@ -59,3 +59,25 @@ export type SavingsGoal = {
   icon: MaterialIconName;
   color: string;
 };
+
+export type AppDataSnapshot = {
+  accounts: Account[];
+  transactions: Transaction[];
+  subscriptions: Subscription[];
+  categories: Category[];
+  budgetGoals: BudgetGoal[];
+  savingsGoals: SavingsGoal[];
+};
+
+export type Currency = {
+  code: string; // e.g. "USD", "EUR", "PHP"
+  symbol: string; // e.g. "$", "€", "₱"
+  name: string; // e.g. "US Dollar"
+};
+
+export type Region = {
+  code: string; // e.g. "US", "PH", "GB"
+  name: string; // e.g. "United States"
+  flag: string; // e.g. "🇺🇸"
+  defaultCurrency: Currency;
+};

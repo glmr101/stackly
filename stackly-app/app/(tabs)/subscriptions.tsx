@@ -47,14 +47,9 @@ export default function Subscriptions() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 items-center justify-center">
-            <MaterialIcons name="event-repeat" size={20} color="#B2C5FF" />
-          </View>
-          <Text className="text-lg font-bold text-on-surface tracking-tight">
-            Recurring Bills
-          </Text>
-        </View>
+        <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+          Recurring Bills
+        </Text>
       </AnimatedBox>
 
       <ScrollView
@@ -63,7 +58,7 @@ export default function Subscriptions() {
       >
         {/* Spend Summary Hero Card */}
         <AnimatedBox
-          delay={60}
+          delay={30}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-purple-500/10 blur-2xl pointer-events-none" />
@@ -109,7 +104,7 @@ export default function Subscriptions() {
         </AnimatedBox>
 
         {/* Filter Tabs */}
-        <AnimatedBox delay={120} className="mx-5 mb-5 flex-row gap-2">
+        <AnimatedBox delay={60} className="mx-5 mb-5 flex-row gap-2">
           {[
             { label: "Active", value: "active" as const },
             { label: "All", value: "all" as const },
@@ -140,7 +135,7 @@ export default function Subscriptions() {
         </AnimatedBox>
 
         {/* Subscriptions List */}
-        <AnimatedBox delay={180} className="px-5 flex-col gap-3.5">
+        <AnimatedBox delay={90} className="px-5 flex-col gap-3.5">
           {filteredSubs.map((sub) => {
             const date = new Date(sub.nextChargeDate);
             const cat = categories.find((c) => c.id === sub.categoryId);

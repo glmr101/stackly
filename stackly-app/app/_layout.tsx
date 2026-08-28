@@ -39,7 +39,7 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           animation: "slide_from_right",
-          animationDuration: 260,
+          animationDuration: 220,
           gestureEnabled: true,
           contentStyle: { backgroundColor: "#090B10" },
         }}
@@ -61,8 +61,7 @@ export default function RootLayout() {
           name="add-transaction"
           options={{
             presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 280,
+            animation: "default",
             gestureEnabled: true,
           }}
         />
@@ -70,8 +69,7 @@ export default function RootLayout() {
           name="add-account"
           options={{
             presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 280,
+            animation: "default",
             gestureEnabled: true,
           }}
         />
@@ -79,8 +77,7 @@ export default function RootLayout() {
           name="add-subscription"
           options={{
             presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 280,
+            animation: "default",
             gestureEnabled: true,
           }}
         />
@@ -88,8 +85,15 @@ export default function RootLayout() {
           name="settings"
           options={{
             presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 280,
+            animation: "default",
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="currency-region"
+          options={{
+            presentation: "modal",
+            animation: "default",
             gestureEnabled: true,
           }}
         />
@@ -97,7 +101,7 @@ export default function RootLayout() {
           name="transactions"
           options={{
             animation: "slide_from_right",
-            animationDuration: 260,
+            animationDuration: 220,
             gestureEnabled: true,
           }}
         />

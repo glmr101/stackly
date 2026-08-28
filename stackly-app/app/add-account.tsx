@@ -25,6 +25,7 @@ export default function AddAccount() {
   const router = useRouter();
 
   const addAccount = useAppStore((state) => state.addAccount);
+  const currency = useAppStore((state) => state.currency);
 
   const [name, setName] = useState("");
   const [institution, setInstitution] = useState("");
@@ -90,7 +91,7 @@ export default function AddAccount() {
             >
               <MaterialIcons name="close" size={22} color="#DFE2F1" />
             </ScaleButton>
-            <Text className="text-lg font-bold text-on-surface tracking-tight">
+            <Text className="text-xl font-extrabold text-on-surface tracking-tight">
               Add New Account
             </Text>
           </View>
@@ -109,7 +110,7 @@ export default function AddAccount() {
 
             <View className="flex-row items-center justify-center w-full my-2">
               <Text className="text-3xl font-extrabold text-on-surface-variant mr-1">
-                $
+                {currency?.symbol || "$"}
               </Text>
               <TextInput
                 className="text-4xl font-extrabold text-on-surface text-center min-w-[120px] p-0"

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Account, Transaction, Subscription, Category, BudgetGoal, SavingsGoal } from '@/types';
+import { Account, Transaction, Subscription, Category, BudgetGoal, SavingsGoal, AppDataSnapshot, Currency, Region } from '@/types';
 import { MOCK_ACCOUNTS, MOCK_TRANSACTIONS, MOCK_SUBSCRIPTIONS, MOCK_CATEGORIES, MOCK_BUDGET_GOALS, MOCK_SAVINGS_GOALS } from '@/data/mocks';
+import { DEFAULT_CURRENCY, DEFAULT_REGION } from '@/data/currencies';
 
 interface AppState {
   accounts: Account[];
@@ -11,6 +12,8 @@ interface AppState {
   categories: Category[];
   budgetGoals: BudgetGoal[];
   savingsGoals: SavingsGoal[];
+  currency: Currency;
+  region: Region;
 
   addAccount: (account: Omit<Account, 'id'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -22,7 +25,13 @@ interface AppState {
   addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
   addSavingsContribution: (id: string, amount: number) => void;
 
+  setCurrency: (currency: Currency) => void;
+  setRegion: (region: Region) => void;
+  setRegionAndCurrency: (region: Region, currency: Currency) => void;
+
   reset: () => void;
+  resetToDemo: () => void;
+  restoreSnapshot: (snapshot: AppDataSnapshot) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -35,6 +44,8 @@ export const useAppStore = create<AppState>()(
       categories: MOCK_CATEGORIES,
       budgetGoals: MOCK_BUDGET_GOALS,
       savingsGoals: MOCK_SAVINGS_GOALS,
+      currency: DEFAULT_CURRENCY,
+      region: DEFAULT_REGION,
 
       addAccount: (account) =>
         set((state) => ({
@@ -160,14 +171,42 @@ export const useAppStore = create<AppState>()(
           )
         })),
 
+      setCurrency: (currency) => set({ currency }),
+      setRegion: (region) => set({ region, currency: region.defaultCurrency }),
+      setRegionAndCurrency: (region, currency) => set({ region, currency }),
+
       reset: () =>
-        set({
+        set((state) => ({
           accounts: [],
           transactions: [],
           subscriptions: [],
           categories: MOCK_CATEGORIES,
           budgetGoals: [],
           savingsGoals: [],
+          currency: state.currency,
+          region: state.region,
+        })),
+
+      resetToDemo: () =>
+        set((state) => ({
+          accounts: MOCK_ACCOUNTS,
+          transactions: MOCK_TRANSACTIONS,
+          subscriptions: MOCK_SUBSCRIPTIONS,
+          categories: MOCK_CATEGORIES,
+          budgetGoals: MOCK_BUDGET_GOALS,
+          savingsGoals: MOCK_SAVINGS_GOALS,
+          currency: state.currency,
+          region: state.region,
+        })),
+
+      restoreSnapshot: (snapshot) =>
+        set({
+          accounts: snapshot.accounts,
+          transactions: snapshot.transactions,
+          subscriptions: snapshot.subscriptions,
+          categories: snapshot.categories,
+          budgetGoals: snapshot.budgetGoals,
+          savingsGoals: snapshot.savingsGoals,
         }),
     }),
     {

@@ -16,7 +16,8 @@ export interface SegmentOption<T extends string = string> {
 export interface SegmentedControlProps<T extends string = string> {
   options: SegmentOption<T>[] | string[];
   selectedValue: T;
-  onChange: (value: T) => void;
+  onChange?: (value: T) => void;
+  onSelect?: (value: T) => void;
   containerClassName?: string;
   activePillColor?: string;
   activeTextColor?: string;
@@ -28,12 +29,17 @@ export function SegmentedControl<T extends string = string>({
   options,
   selectedValue,
   onChange,
+  onSelect,
   containerClassName,
   activePillColor = '#7AA2F7',
   activeTextColor = '#0B0E14',
   inactiveTextColor = '#94A3B8',
   style,
 }: SegmentedControlProps<T>) {
+  const handleChange = (val: T) => {
+    onChange?.(val);
+    onSelect?.(val);
+  };
   const [containerWidth, setContainerWidth] = useState(0);
   const translateX = useSharedValue(0);
 
@@ -95,7 +101,7 @@ export function SegmentedControl<T extends string = string>({
             key={option.value}
             activeScale={0.96}
             className="flex-1 py-2.5 px-3 rounded-xl items-center justify-center flex-row gap-1.5 z-10"
-            onPress={() => onChange(option.value)}
+            onPress={() => handleChange(option.value)}
           >
             {option.icon}
             <Text

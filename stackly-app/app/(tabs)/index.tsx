@@ -102,18 +102,10 @@ export default function Home() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Top Navigation Bar */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 items-center justify-center">
-            <MaterialIcons name="auto-graph" size={20} color="#B2C5FF" />
-          </View>
-          <View>
-            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-              Welcome Back
-            </Text>
-            <Text className="text-lg font-bold text-on-surface tracking-tight">
-              Stackly Overview
-            </Text>
-          </View>
+        <View>
+          <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+            Stackly Overview
+          </Text>
         </View>
 
         <Link href={"/settings" as any} asChild>
@@ -132,7 +124,7 @@ export default function Home() {
       >
         {/* Hero Net Worth Card */}
         <AnimatedBox
-          delay={60}
+          delay={30}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           {/* Ambient Glow Orbs in Background */}
@@ -147,21 +139,18 @@ export default function Home() {
             <View className="flex-row items-center gap-1.5 bg-surface-container-highest/80 px-2.5 py-1 rounded-full border border-white/5">
               <View className="relative w-2 h-2 items-center justify-center">
                 <Animated.View
-                  className={`absolute w-full h-full rounded-full ${
-                    trendIsPositive ? "bg-secondary" : "bg-error"
-                  }`}
+                  className={`absolute w-full h-full rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
+                    }`}
                   style={animatedPulseStyle}
                 />
                 <View
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    trendIsPositive ? "bg-secondary" : "bg-error"
-                  }`}
+                  className={`w-1.5 h-1.5 rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
+                    }`}
                 />
               </View>
               <Text
-                className={`text-[11px] font-bold ${
-                  trendIsPositive ? "text-secondary" : "text-error"
-                }`}
+                className={`text-[11px] font-bold ${trendIsPositive ? "text-secondary" : "text-error"
+                  }`}
               >
                 {trendIsPositive ? "+" : "-"}$
                 {Math.abs(netWorthTrend).toLocaleString("en-US", {
@@ -226,7 +215,7 @@ export default function Home() {
 
         {/* Quick Action Buttons */}
         <AnimatedBox
-          delay={120}
+          delay={60}
           className="mx-5 mb-7 flex-row items-center justify-between gap-3"
         >
           <Link href={"/add-transaction" as any} asChild>
@@ -287,7 +276,7 @@ export default function Home() {
         </AnimatedBox>
 
         {/* Accounts Horizontal Carousel */}
-        <AnimatedBox delay={180} className="mb-7">
+        <AnimatedBox delay={80} className="mb-7">
           <View className="px-5 mb-3.5 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">
@@ -322,11 +311,10 @@ export default function Home() {
                 <Link key={account.id} href="/accounts" asChild>
                   <ScaleButton
                     activeScale={0.94}
-                    className={`w-[210px] p-4 rounded-[22px] justify-between h-36 overflow-hidden border shadow-md relative ${
-                      isPrimary
-                        ? "bg-[#1E293B] border-primary/30"
-                        : "bg-surface-container border-outline-variant/30"
-                    }`}
+                    className={`w-[210px] p-4 rounded-[22px] justify-between h-36 overflow-hidden border shadow-md relative ${isPrimary
+                      ? "bg-[#1E293B] border-primary/30"
+                      : "bg-surface-container border-outline-variant/30"
+                      }`}
                   >
                     {/* Background Watermark Icon */}
                     <View className="absolute right-[-14px] bottom-[-14px] opacity-10">
@@ -341,9 +329,8 @@ export default function Home() {
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-2">
                         <View
-                          className={`w-7 h-7 rounded-lg items-center justify-center ${
-                            isPrimary ? "bg-primary/20" : "bg-surface-container-highest"
-                          }`}
+                          className={`w-7 h-7 rounded-lg items-center justify-center ${isPrimary ? "bg-primary/20" : "bg-surface-container-highest"
+                            }`}
                         >
                           <MaterialIcons
                             name={account.icon as any}
@@ -386,7 +373,7 @@ export default function Home() {
 
         {/* Upcoming Bills */}
         {upcomingBills.length > 0 && (
-          <AnimatedBox delay={240} className="mb-7 px-5">
+          <AnimatedBox delay={110} className="mb-7 px-5">
             <View className="flex-row items-center justify-between mb-3.5">
               <View className="flex-row items-center gap-2">
                 <Text className="text-base font-bold text-on-surface tracking-tight">
@@ -453,7 +440,7 @@ export default function Home() {
         )}
 
         {/* Recent Activity */}
-        <AnimatedBox delay={300} className="px-5">
+        <AnimatedBox delay={140} className="px-5">
           <View className="flex-row items-center justify-between mb-3.5">
             <Text className="text-base font-bold text-on-surface tracking-tight">
               Recent Activity

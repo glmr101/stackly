@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextProps, StyleProp, TextStyle, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
+import { useSegments } from 'expo-router';
+import { useAppStore } from '@/store/useAppStore';
 
 export interface AnimatedCounterProps extends TextProps {
   value: number;
@@ -42,13 +44,20 @@ function framerEaseOutExpo(t: number): number {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 }
 
+/**
+ * Animated number counter component
+ * - Full 0-to-target count up on initial mount only
+ * - Subtle tens/hundreds place transition on screen tab switches
+ * - Smooth delta animation on value change
+ * - No reload animation when opening/closing a modal
+ */
 export function AnimatedCounter({
   value,
   prefix = '$',
   suffix = '',
   decimals = 2,
-  duration = 850,
-  transitionDuration = 450,
+  duration = 400,
+  transitionDuration = 240,
   formatter,
   showDecimalsSmall = false,
   className,
@@ -57,12 +66,18 @@ export function AnimatedCounter({
   decimalStyle,
   ...textProps
 }: AnimatedCounterProps) {
+  const currency = useAppStore((state) => state.currency);
+  const currencySymbol = currency?.symbol || '$';
+  const resolvedPrefix = prefix.replace('$', currencySymbol);
+
   const isFocused = useIsFocused();
+  const segments = useSegments();
   const isInitialMount = useRef(true);
   const wasFocusedRef = useRef(false);
+  const wasTabSwitchRef = useRef(false);
 
-  const [displayValue, setDisplayValue] = useState<number>(0);
-  const startValueRef = useRef<number>(0);
+  const [displayValue, setDisplayValue] = useState<number>(value);
+  const startValueRef = useRef<number>(value);
   const targetValueRef = useRef<number>(value);
   const startTimeRef = useRef<number | null>(null);
   const reqIdRef = useRef<number | null>(null);
@@ -74,7 +89,7 @@ export function AnimatedCounter({
       reqIdRef.current = null;
     }
 
-    if (from === to) {
+    if (from === to || animDuration <= 0) {
       setDisplayValue(to);
       return;
     }
@@ -108,25 +123,35 @@ export function AnimatedCounter({
   };
 
   useEffect(() => {
+    const isModalOrRootScreen = segments.length > 0 && segments[0] !== '(tabs)';
+
+    // If modal is currently open over this screen, do not run screen transitions
+    if (isModalOrRootScreen) {
+      return;
+    }
+
     if (isFocused) {
       if (isInitialMount.current) {
-        // ONCE ONLY on initial mount: count from 0 to current amount
         isInitialMount.current = false;
         wasFocusedRef.current = true;
+        wasTabSwitchRef.current = false;
         lastValueRef.current = value;
         startAnimation(0, value, duration);
-      } else if (!wasFocusedRef.current) {
-        // ON EVERY SCREEN TRANSITION: animate only the hundreds place
+      } else if (wasTabSwitchRef.current) {
+        wasTabSwitchRef.current = false;
         wasFocusedRef.current = true;
         lastValueRef.current = value;
         const hundredsBase = getHundredsBase(value);
         startAnimation(hundredsBase, value, transitionDuration);
       } else if (lastValueRef.current !== value) {
-        // WHEN VALUE UPDATES while active on screen: animate from previous display value to new value
+        const prev = lastValueRef.current;
         lastValueRef.current = value;
-        startAnimation(displayValue, value, 550);
+        startAnimation(prev, value, 300);
+      } else {
+        setDisplayValue(value);
       }
     } else {
+      wasTabSwitchRef.current = true;
       wasFocusedRef.current = false;
       if (reqIdRef.current) {
         cancelAnimationFrame(reqIdRef.current);
@@ -140,7 +165,7 @@ export function AnimatedCounter({
         reqIdRef.current = null;
       }
     };
-  }, [isFocused, value, duration, transitionDuration]);
+  }, [isFocused, segments, value, duration, transitionDuration]);
 
   const formatNumber = (num: number): { whole: string; decimal: string; full: string } => {
     if (formatter) {
@@ -155,7 +180,7 @@ export function AnimatedCounter({
 
     // Add comma grouping (e.g. 12,450)
     const withCommas = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const formattedWhole = `${isNegative ? '-' : ''}${prefix}${withCommas}`;
+    const formattedWhole = `${isNegative ? '-' : ''}${resolvedPrefix}${withCommas}`;
     const formattedDecimal = decPart !== undefined && decimals > 0 ? `.${decPart}` : '';
 
     return {

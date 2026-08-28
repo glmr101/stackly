@@ -22,6 +22,7 @@ export default function AddTransaction() {
   const storeAccounts = useAppStore((state) => state.accounts);
   const storeCategories = useAppStore((state) => state.categories);
   const addTransaction = useAppStore((state) => state.addTransaction);
+  const currency = useAppStore((state) => state.currency);
 
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
@@ -100,7 +101,7 @@ export default function AddTransaction() {
             >
               <MaterialIcons name="close" size={22} color="#DFE2F1" />
             </ScaleButton>
-            <Text className="text-lg font-bold text-on-surface tracking-tight">
+            <Text className="text-xl font-extrabold text-on-surface tracking-tight">
               Log Transaction
             </Text>
           </View>
@@ -139,7 +140,7 @@ export default function AddTransaction() {
 
             <View className="flex-row items-center justify-center w-full my-2">
               <Text className="text-3xl font-extrabold text-on-surface-variant mr-1">
-                $
+                {currency?.symbol || "$"}
               </Text>
               <TextInput
                 className="text-4xl font-extrabold text-on-surface text-center min-w-[120px] p-0"
@@ -162,7 +163,7 @@ export default function AddTransaction() {
                   className="px-3.5 py-1.5 rounded-full bg-surface-container-high border border-outline-variant/30"
                 >
                   <Text className="text-xs font-bold text-primary">
-                    +${preset}
+                    +{currency?.symbol || "$"}{preset}
                   </Text>
                 </ScaleButton>
               ))}

@@ -56,14 +56,9 @@ export default function Accounts() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 items-center justify-center">
-            <MaterialIcons name="account-balance" size={20} color="#B2C5FF" />
-          </View>
-          <Text className="text-lg font-bold text-on-surface tracking-tight">
-            Accounts & Assets
-          </Text>
-        </View>
+        <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+          Accounts & Assets
+        </Text>
       </AnimatedBox>
 
       <ScrollView
@@ -72,7 +67,7 @@ export default function Accounts() {
       >
         {/* Total Net Worth Hero Card */}
         <AnimatedBox
-          delay={60}
+          delay={30}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
@@ -142,7 +137,7 @@ export default function Accounts() {
         </AnimatedBox>
 
         {/* Filter Chips */}
-        <AnimatedBox delay={120} className="mx-5 mb-5">
+        <AnimatedBox delay={60} className="mx-5 mb-5">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -175,7 +170,7 @@ export default function Accounts() {
         </AnimatedBox>
 
         {/* Accounts List */}
-        <AnimatedBox delay={180} className="px-5 mb-8 flex-col gap-3">
+        <AnimatedBox delay={90} className="px-5 mb-8 flex-col gap-3">
           <View className="flex-row items-center justify-between mb-1">
             <Text className="text-base font-bold text-on-surface tracking-tight">
               All Accounts ({filteredAccounts.length})
@@ -276,7 +271,7 @@ export default function Accounts() {
         </AnimatedBox>
 
         {/* Savings Goals Section */}
-        <AnimatedBox delay={240} className="px-5">
+        <AnimatedBox delay={120} className="px-5">
           <View className="flex-row items-center justify-between mb-3.5">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">

@@ -67,7 +67,7 @@ export default function Transactions() {
           >
             <MaterialIcons name="arrow-back" size={22} color="#DFE2F1" />
           </ScaleButton>
-          <Text className="text-lg font-bold text-on-surface tracking-tight">
+          <Text className="text-xl font-extrabold text-on-surface tracking-tight">
             All Transactions
           </Text>
         </View>
@@ -83,7 +83,7 @@ export default function Transactions() {
       </AnimatedBox>
 
       {/* Search & Filter Controls */}
-      <AnimatedBox delay={60}>
+      <AnimatedBox delay={30}>
         {/* Search Input Bar */}
         <View className="px-5 pt-4 pb-2">
           <View className="bg-surface-container-low rounded-2xl px-4 py-1.5 flex-row items-center gap-2.5 border border-outline-variant/30">
@@ -163,7 +163,7 @@ export default function Transactions() {
       </AnimatedBox>
 
       {/* Transactions List */}
-      <AnimatedBox delay={120} className="flex-1">
+      <AnimatedBox delay={60} className="flex-1">
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}

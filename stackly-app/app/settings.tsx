@@ -1,15 +1,15 @@
-import React from "react";
-import { View, Text, ScrollView, Image, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView, Image, StyleSheet, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAppStore } from "@/store/useAppStore";
-import { MaterialIconName } from "@/types";
+import { MaterialIconName, AppDataSnapshot } from "@/types";
 import { ScaleButton } from "@/components/ui/ScaleButton";
-import { AnimatedBox } from "@/components/ui/AnimatedBox";
 import { GrabHandle } from "@/components/ui/GrabHandle";
+import { UndoToast } from "@/components/ui/UndoToast";
 
 interface SettingItem {
   id: string;
@@ -26,6 +26,27 @@ export default function Settings() {
 
   const accounts = useAppStore((state) => state.accounts);
   const transactions = useAppStore((state) => state.transactions);
+  const subscriptions = useAppStore((state) => state.subscriptions);
+  const categories = useAppStore((state) => state.categories);
+  const budgetGoals = useAppStore((state) => state.budgetGoals);
+  const savingsGoals = useAppStore((state) => state.savingsGoals);
+
+  const currency = useAppStore((state) => state.currency);
+  const region = useAppStore((state) => state.region);
+
+  const reset = useAppStore((state) => state.reset);
+  const resetToDemo = useAppStore((state) => state.resetToDemo);
+  const restoreSnapshot = useAppStore((state) => state.restoreSnapshot);
+
+  const [undoToast, setUndoToast] = useState<{
+    visible: boolean;
+    message: string;
+    snapshot: AppDataSnapshot | null;
+  }>({
+    visible: false,
+    message: "",
+    snapshot: null,
+  });
 
   const email = user?.email || "alex.rivera@example.com";
   const displayName = user?.displayName || email.split("@")[0] || "Alex Rivera";
@@ -48,7 +69,7 @@ export default function Settings() {
     {
       id: "currency",
       title: "Currency & Region",
-      subtitle: "USD ($) • United States",
+      subtitle: `${currency?.code || "USD"} (${currency?.symbol || "$"}) • ${region?.name || "United States"}`,
       icon: "attach-money",
       color: "#FBBF24",
     },
@@ -69,13 +90,83 @@ export default function Settings() {
       icon: "cloud-download",
       color: "#38BDF8",
     },
+    {
+      id: "reset",
+      title: "Reset App Data",
+      subtitle: "Wipe all records or restore demo data",
+      icon: "restart-alt",
+      color: "#FFB4AB",
+    },
   ];
+
+  const handleResetPress = () => {
+    Alert.alert(
+      "Reset App Data",
+      "Choose whether to wipe all financial records clean or restore sample demo data. You will have 5 seconds to undo this action.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Restore Demo",
+          onPress: () => {
+            const snapshot: AppDataSnapshot = {
+              accounts: [...accounts],
+              transactions: [...transactions],
+              subscriptions: [...subscriptions],
+              categories: [...categories],
+              budgetGoals: [...budgetGoals],
+              savingsGoals: [...savingsGoals],
+            };
+            resetToDemo();
+            setUndoToast({
+              visible: true,
+              message: "Demo sample data restored",
+              snapshot,
+            });
+          },
+        },
+        {
+          text: "Wipe All Data",
+          style: "destructive",
+          onPress: () => {
+            const snapshot: AppDataSnapshot = {
+              accounts: [...accounts],
+              transactions: [...transactions],
+              subscriptions: [...subscriptions],
+              categories: [...categories],
+              budgetGoals: [...budgetGoals],
+              savingsGoals: [...savingsGoals],
+            };
+            reset();
+            setUndoToast({
+              visible: true,
+              message: "All financial data wiped",
+              snapshot,
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUndo = () => {
+    if (undoToast.snapshot) {
+      restoreSnapshot(undoToast.snapshot);
+    }
+    setUndoToast((prev) => ({ ...prev, visible: false, snapshot: null }));
+  };
+
+  const handleDismissUndo = () => {
+    setUndoToast((prev) => ({ ...prev, visible: false, snapshot: null }));
+  };
 
   return (
     <View className="flex-1 bg-background">
       <GrabHandle />
       {/* Header */}
-      <AnimatedBox delay={0} className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
+      <View className="h-16 px-4 flex-row items-center justify-between border-b border-outline-variant/20">
         <View className="flex-row items-center gap-3">
           <ScaleButton
             activeScale={0.88}
@@ -84,11 +175,11 @@ export default function Settings() {
           >
             <MaterialIcons name="close" size={22} color="#DFE2F1" />
           </ScaleButton>
-          <Text className="text-lg font-bold text-on-surface tracking-tight">
+          <Text className="text-xl font-extrabold text-on-surface tracking-tight">
             Settings & Profile
           </Text>
         </View>
-      </AnimatedBox>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -96,10 +187,7 @@ export default function Settings() {
       >
         <View className="px-5 py-5 flex-col gap-6">
           {/* User Profile Hero Card */}
-          <AnimatedBox
-            delay={60}
-            className="p-5 bg-surface-container rounded-[28px] border border-white/10 shadow-lg relative overflow-hidden"
-          >
+          <View className="p-5 bg-surface-container rounded-[28px] border border-white/10 shadow-lg relative overflow-hidden">
             <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
 
             <View className="flex-row items-center gap-4">
@@ -168,10 +256,10 @@ export default function Settings() {
                 </Text>
               </View>
             </View>
-          </AnimatedBox>
+          </View>
 
           {/* General Settings Group */}
-          <AnimatedBox delay={120}>
+          <View>
             <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5 px-1">
               General Preferences
             </Text>
@@ -180,6 +268,11 @@ export default function Settings() {
                 <ScaleButton
                   key={item.id}
                   activeScale={0.98}
+                  onPress={() => {
+                    if (item.id === "currency") {
+                      router.push("/currency-region" as any);
+                    }
+                  }}
                   className={`flex-row items-center justify-between p-4 ${
                     index !== generalSettings.length - 1
                       ? "border-b border-outline-variant/20"
@@ -216,10 +309,10 @@ export default function Settings() {
                 </ScaleButton>
               ))}
             </View>
-          </AnimatedBox>
+          </View>
 
           {/* Security Group */}
-          <AnimatedBox delay={180}>
+          <View>
             <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5 px-1">
               Security & Data
             </Text>
@@ -228,6 +321,11 @@ export default function Settings() {
                 <ScaleButton
                   key={item.id}
                   activeScale={0.98}
+                  onPress={() => {
+                    if (item.id === "reset") {
+                      handleResetPress();
+                    }
+                  }}
                   className={`flex-row items-center justify-between p-4 ${
                     index !== securitySettings.length - 1
                       ? "border-b border-outline-variant/20"
@@ -264,13 +362,10 @@ export default function Settings() {
                 </ScaleButton>
               ))}
             </View>
-          </AnimatedBox>
+          </View>
 
           {/* Bank Sync Coming Soon Card */}
-          <AnimatedBox
-            delay={240}
-            className="p-5 bg-surface-container-high rounded-[26px] border border-primary/20 relative overflow-hidden shadow-md"
-          >
+          <View className="p-5 bg-surface-container-high rounded-[26px] border border-primary/20 relative overflow-hidden shadow-md">
             <View className="absolute -top-10 -right-10 w-32 h-32 bg-primary/15 rounded-full blur-2xl pointer-events-none" />
 
             <View className="flex-row items-center justify-between mb-2">
@@ -308,10 +403,10 @@ export default function Settings() {
                 Join Sync Waitlist
               </Text>
             </ScaleButton>
-          </AnimatedBox>
+          </View>
 
           {/* Sign Out Button */}
-          <AnimatedBox delay={300} className="pt-2 pb-6 flex-col items-center gap-3">
+          <View className="pt-2 pb-6 flex-col items-center gap-3">
             <ScaleButton
               activeScale={0.95}
               className="w-full py-4 px-4 bg-error-container/40 rounded-2xl flex-row items-center justify-center gap-2 border border-error/30 shadow-sm"
@@ -328,9 +423,18 @@ export default function Settings() {
             <Text className="text-[11px] font-medium text-outline">
               Stackly v1.0.0 • All data encrypted locally
             </Text>
-          </AnimatedBox>
+          </View>
         </View>
       </ScrollView>
+
+      {/* 5-Second Undo Toast */}
+      <UndoToast
+        visible={undoToast.visible}
+        message={undoToast.message}
+        duration={5000}
+        onUndo={handleUndo}
+        onDismiss={handleDismissUndo}
+      />
     </View>
   );
 }

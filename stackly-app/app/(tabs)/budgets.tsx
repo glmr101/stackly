@@ -52,14 +52,9 @@ export default function Budgets() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 items-center justify-center">
-            <MaterialIcons name="pie-chart" size={20} color="#C084FC" />
-          </View>
-          <Text className="text-lg font-bold text-on-surface tracking-tight">
-            Budgets & Limits
-          </Text>
-        </View>
+        <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+          Budgets & Limits
+        </Text>
       </AnimatedBox>
 
       <ScrollView
@@ -68,7 +63,7 @@ export default function Budgets() {
       >
         {/* Overall Budget Hero Card */}
         <AnimatedBox
-          delay={60}
+          delay={30}
           className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
         >
           <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-secondary/10 blur-2xl pointer-events-none" />
@@ -134,7 +129,7 @@ export default function Budgets() {
         </AnimatedBox>
 
         {/* Category Budget Goals */}
-        <AnimatedBox delay={140} className="px-5 mb-8 flex-col gap-3">
+        <AnimatedBox delay={60} className="px-5 mb-8 flex-col gap-3">
           <View className="flex-row items-center justify-between mb-1">
             <Text className="text-base font-bold text-on-surface tracking-tight">
               Categories ({budgetGoals.length})
