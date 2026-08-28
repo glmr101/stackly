@@ -51,6 +51,14 @@ function framerEaseOutExpo(t: number): number {
  * - Smooth delta animation on value change
  * - No reload animation when opening/closing a modal
  */
+const MODAL_ROUTES = [
+  'add-transaction',
+  'add-account',
+  'add-subscription',
+  'settings',
+  'currency-region',
+];
+
 export function AnimatedCounter({
   value,
   prefix = '$',
@@ -72,10 +80,6 @@ export function AnimatedCounter({
 
   const isFocused = useIsFocused();
   const segments = useSegments();
-  const isInitialMount = useRef(true);
-  const wasFocusedRef = useRef(false);
-  const wasTabSwitchRef = useRef(false);
-
   const [displayValue, setDisplayValue] = useState<number>(value);
   const startValueRef = useRef<number>(value);
   const targetValueRef = useRef<number>(value);
@@ -122,28 +126,30 @@ export function AnimatedCounter({
     reqIdRef.current = requestAnimationFrame(animate);
   };
 
-  useEffect(() => {
-    const isModalOrRootScreen = segments.length > 0 && segments[0] !== '(tabs)';
+  const lostFocusToModalRef = useRef(false);
 
-    // If modal is currently open over this screen, do not run screen transitions
-    if (isModalOrRootScreen) {
+  useEffect(() => {
+    const currentRoot = (segments[0] as string) ?? '';
+    const isModal = MODAL_ROUTES.includes(currentRoot);
+
+    if (!isFocused) {
+      if (isModal) {
+        lostFocusToModalRef.current = true;
+      }
+      if (reqIdRef.current) {
+        cancelAnimationFrame(reqIdRef.current);
+        reqIdRef.current = null;
+      }
       return;
     }
 
-    if (isFocused) {
-      if (isInitialMount.current) {
-        isInitialMount.current = false;
-        wasFocusedRef.current = true;
-        wasTabSwitchRef.current = false;
-        lastValueRef.current = value;
-        startAnimation(0, value, duration);
-      } else if (wasTabSwitchRef.current) {
-        wasTabSwitchRef.current = false;
-        wasFocusedRef.current = true;
-        lastValueRef.current = value;
-        const hundredsBase = getHundredsBase(value);
-        startAnimation(hundredsBase, value, transitionDuration);
-      } else if (lastValueRef.current !== value) {
+    // Focused — decide how to animate
+    const wasModal = lostFocusToModalRef.current;
+    lostFocusToModalRef.current = false;
+
+    if (wasModal) {
+      // Coming back from a modal: just update if value changed, no big count-up
+      if (lastValueRef.current !== value) {
         const prev = lastValueRef.current;
         lastValueRef.current = value;
         startAnimation(prev, value, 300);
@@ -151,12 +157,9 @@ export function AnimatedCounter({
         setDisplayValue(value);
       }
     } else {
-      wasTabSwitchRef.current = true;
-      wasFocusedRef.current = false;
-      if (reqIdRef.current) {
-        cancelAnimationFrame(reqIdRef.current);
-        reqIdRef.current = null;
-      }
+      // Every other focus gain (initial, tab switch, navigation): full count-up from 0
+      lastValueRef.current = value;
+      startAnimation(0, value, duration);
     }
 
     return () => {
@@ -165,7 +168,7 @@ export function AnimatedCounter({
         reqIdRef.current = null;
       }
     };
-  }, [isFocused, segments, value, duration, transitionDuration]);
+  }, [isFocused, segments, value, duration]);
 
   const formatNumber = (num: number): { whole: string; decimal: string; full: string } => {
     if (formatter) {

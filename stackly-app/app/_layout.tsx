@@ -61,7 +61,8 @@ export default function RootLayout() {
           name="add-transaction"
           options={{
             presentation: "modal",
-            animation: "default",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
             gestureEnabled: true,
           }}
         />
@@ -69,7 +70,8 @@ export default function RootLayout() {
           name="add-account"
           options={{
             presentation: "modal",
-            animation: "default",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
             gestureEnabled: true,
           }}
         />
@@ -77,7 +79,8 @@ export default function RootLayout() {
           name="add-subscription"
           options={{
             presentation: "modal",
-            animation: "default",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
             gestureEnabled: true,
           }}
         />
@@ -85,7 +88,8 @@ export default function RootLayout() {
           name="settings"
           options={{
             presentation: "modal",
-            animation: "default",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
             gestureEnabled: true,
           }}
         />
@@ -93,7 +97,8 @@ export default function RootLayout() {
           name="currency-region"
           options={{
             presentation: "modal",
-            animation: "default",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
             gestureEnabled: true,
           }}
         />
@@ -101,7 +106,7 @@ export default function RootLayout() {
           name="transactions"
           options={{
             animation: "slide_from_right",
-            animationDuration: 220,
+            animationDuration: 260,
             gestureEnabled: true,
           }}
         />

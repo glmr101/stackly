@@ -18,90 +18,73 @@ export interface ScreenTransitionProps {
   duration?: number;
 }
 
+const MODAL_ROUTES = new Set([
+  'add-transaction',
+  'add-account',
+  'add-subscription',
+  'settings',
+  'currency-region',
+]);
+
 export function ScreenTransition({
   children,
   style,
   className = 'flex-1',
   preset = 'fade-slide',
-  duration = 220,
+  duration = 240,
 }: ScreenTransitionProps) {
   const isFocused = useIsFocused();
   const segments = useSegments();
-  const opacity = useSharedValue(1);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(10);
+  const scale = useSharedValue(0.985);
 
-  const isInitialMount = useRef(true);
-  const wasTabSwitchRef = useRef(false);
+  const lostFocusToModalRef = useRef(false);
+
+  const triggerTransition = () => {
+    opacity.value = 0;
+    translateY.value = 10;
+    scale.value = 0.985;
+
+    opacity.value = withTiming(1, { duration, easing: Easing.out(Easing.cubic) });
+    translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+    scale.value = withSpring(1, { damping: 22, stiffness: 240, mass: 0.8 });
+  };
 
   useEffect(() => {
-    const isModalOrRootScreen = segments.length > 0 && segments[0] !== '(tabs)';
-
-    // If modal is open over this screen, do not run screen transitions
-    if (isModalOrRootScreen) {
-      return;
-    }
+    const currentRoot = (segments[0] as string) ?? '';
+    const isModal = MODAL_ROUTES.has(currentRoot);
 
     if (!isFocused) {
-      wasTabSwitchRef.current = true;
+      if (isModal) {
+        lostFocusToModalRef.current = true;
+      } else {
+        // Pre-reset while hidden so re-entry always starts clean
+        opacity.value = 0;
+        translateY.value = 10;
+        scale.value = 0.985;
+      }
       return;
     }
 
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      triggerTransition();
-    } else if (wasTabSwitchRef.current) {
-      wasTabSwitchRef.current = false;
-      triggerTransition();
-    } else {
+    const wasModal = lostFocusToModalRef.current;
+    lostFocusToModalRef.current = false;
+
+    if (wasModal) {
+      // Coming back from a modal — snap to visible instantly
       opacity.value = 1;
       translateY.value = 0;
       scale.value = 1;
+    } else {
+      // Every other focus gain — animate in
+      triggerTransition();
     }
-
-    function triggerTransition() {
-      opacity.value = 0;
-      translateY.value = 10;
-      scale.value = 0.985;
-
-      opacity.value = withTiming(1, {
-        duration,
-        easing: Easing.out(Easing.cubic),
-      });
-
-      translateY.value = withSpring(0, {
-        damping: 22,
-        stiffness: 240,
-        mass: 0.8,
-      });
-
-      scale.value = withSpring(1, {
-        damping: 22,
-        stiffness: 240,
-        mass: 0.8,
-      });
-    }
-  }, [isFocused, segments, duration]);
+  }, [isFocused, segments]);
 
   const animatedStyle = useAnimatedStyle(() => {
-    if (preset === 'fade') {
-      return {
-        opacity: opacity.value,
-      };
-    }
-
-    if (preset === 'fade-scale') {
-      return {
-        opacity: opacity.value,
-        transform: [{ scale: scale.value }],
-      };
-    }
-
-    // Default: fade-slide
-    return {
-      opacity: opacity.value,
-      transform: [{ translateY: translateY.value }],
-    };
+    if (preset === 'fade') return { opacity: opacity.value };
+    if (preset === 'fade-scale') return { opacity: opacity.value, transform: [{ scale: scale.value }] };
+    return { opacity: opacity.value, transform: [{ translateY: translateY.value }] };
   });
 
   return (

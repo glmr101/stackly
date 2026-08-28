@@ -21,96 +21,91 @@ export interface AnimatedBoxProps extends ViewProps {
   style?: StyleProp<ViewStyle>;
 }
 
+const MODAL_ROUTES = new Set([
+  'add-transaction',
+  'add-account',
+  'add-subscription',
+  'settings',
+  'currency-region',
+]);
+
 export function AnimatedBox({
   children,
   delay = 0,
-  duration = 240,
+  duration = 280,
   direction = 'up',
-  offset = 10,
+  offset = 12,
   className,
   style,
   ...props
 }: AnimatedBoxProps) {
   const isFocused = useIsFocused();
   const segments = useSegments();
-  const opacity = useSharedValue(1);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
 
   const initialX = direction === 'left' ? -offset : direction === 'right' ? offset : 0;
   const initialY = direction === 'up' ? offset : direction === 'down' ? -offset : 0;
 
-  const isInitialMount = useRef(true);
-  const wasTabSwitchRef = useRef(false);
+  const opacity = useSharedValue(0);
+  const translateX = useSharedValue(initialX);
+  const translateY = useSharedValue(initialY);
+
+  // Track whether focus was lost due to a modal overlay
+  const lostFocusToModalRef = useRef(false);
+  const prevFocusedRef = useRef<boolean | null>(null);
+
+  const runEntranceAnimation = () => {
+    opacity.value = 0;
+    translateX.value = initialX;
+    translateY.value = initialY;
+
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, { duration, easing: Easing.out(Easing.cubic) })
+    );
+
+    if (initialX !== 0) {
+      translateX.value = withDelay(delay, withSpring(0, { damping: 22, stiffness: 220, mass: 0.8 }));
+    }
+
+    if (initialY !== 0) {
+      translateY.value = withDelay(delay, withSpring(0, { damping: 22, stiffness: 220, mass: 0.8 }));
+    }
+  };
 
   useEffect(() => {
-    const isModalOrRootScreen = segments.length > 0 && segments[0] !== '(tabs)';
-
-    // If a modal or root screen is presented over this tab, do NOT re-trigger entrance
-    if (isModalOrRootScreen) {
-      return;
-    }
+    const currentRoot = (segments[0] as string) ?? '';
+    const isModal = MODAL_ROUTES.has(currentRoot);
 
     if (!isFocused) {
-      wasTabSwitchRef.current = true;
+      // Track why we lost focus
+      if (isModal) {
+        lostFocusToModalRef.current = true;
+      }
+      // Pre-reset while not visible (only when not modal) so return plays clean
+      if (!isModal) {
+        opacity.value = 0;
+        translateX.value = initialX;
+        translateY.value = initialY;
+      }
+      prevFocusedRef.current = false;
       return;
     }
 
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      triggerEntrance();
-    } else if (wasTabSwitchRef.current) {
-      wasTabSwitchRef.current = false;
-      triggerEntrance();
-    } else {
-      // Returning after modal dismissal or maintaining state: keep fully visible immediately
+    // We are now focused
+    const wasModal = lostFocusToModalRef.current;
+    lostFocusToModalRef.current = false;
+    prevFocusedRef.current = true;
+
+    if (wasModal) {
+      // Coming back from a modal — snap to visible with no animation delay
       opacity.value = 1;
       translateX.value = 0;
       translateY.value = 0;
+    } else {
+      // Every other focus gain (initial mount, tab switch, stack navigation) — animate in
+      runEntranceAnimation();
     }
-
-    function triggerEntrance() {
-      opacity.value = 0;
-      translateX.value = initialX;
-      translateY.value = initialY;
-
-      const animDuration = Math.min(duration, 260);
-
-      opacity.value = withDelay(
-        delay,
-        withTiming(1, {
-          duration: animDuration,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-
-      if (initialX !== 0) {
-        translateX.value = withDelay(
-          delay,
-          withSpring(0, {
-            damping: 24,
-            stiffness: 260,
-            mass: 0.8,
-          })
-        );
-      } else {
-        translateX.value = 0;
-      }
-
-      if (initialY !== 0) {
-        translateY.value = withDelay(
-          delay,
-          withSpring(0, {
-            damping: 24,
-            stiffness: 260,
-            mass: 0.8,
-          })
-        );
-      } else {
-        translateY.value = 0;
-      }
-    }
-  }, [isFocused, segments, delay, duration, initialX, initialY]);
+  }, [isFocused, segments]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
