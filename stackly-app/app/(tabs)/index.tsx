@@ -24,7 +24,6 @@ export default function Home() {
   const accounts = useAppStore((state) => state.accounts);
   const transactions = useAppStore((state) => state.transactions);
   const subscriptions = useAppStore((state) => state.subscriptions);
-  const categories = useAppStore((state) => state.categories);
   const currency = useAppStore((state) => state.currency);
   const postSubscription = useAppStore((state) => state.postSubscription);
   const checkAndAutoPostDueSubscriptions = useAppStore(
@@ -339,16 +338,19 @@ export default function Home() {
             </ScaleButton>
           </Link>
 
-          <Link href={"/budgets" as any} asChild>
+          <Link href={"/transactions" as any} asChild>
             <ScaleButton
               activeScale={0.92}
               className="flex-1 bg-surface-container-high border border-outline-variant/30 py-3.5 px-2 rounded-2xl items-center justify-center gap-1.5 shadow-sm"
             >
               <View className="w-9 h-9 rounded-xl bg-purple-500/15 items-center justify-center">
-                <MaterialIcons name="pie-chart" size={18} color="#C084FC" />
+                <MaterialIcons name="history" size={20} color="#C084FC" />
               </View>
-              <Text className="text-xs font-semibold text-on-surface">
-                Budgets
+              <Text
+                numberOfLines={1}
+                className="text-xs font-semibold text-on-surface"
+              >
+                Transactions
               </Text>
             </ScaleButton>
           </Link>
@@ -522,132 +524,6 @@ export default function Home() {
               </Link>
             </View>
           )}
-        </AnimatedBox>
-
-        {/* Recent Activity */}
-        <AnimatedBox delay={140} className="px-5">
-          <View className="flex-row items-center justify-between mb-3.5">
-            <Text className="text-base font-bold text-on-surface tracking-tight">
-              Recent Activity
-            </Text>
-            <Link href={"/transactions" as any} asChild>
-              <ScaleButton activeScale={0.92} hitSlop={12}>
-                <Text className="text-xs font-semibold text-primary">
-                  View all →
-                </Text>
-              </ScaleButton>
-            </Link>
-          </View>
-
-          <View className="flex-col gap-2.5">
-            {transactions.slice(0, 5).map((tx) => {
-              const isIncome = tx.type === "income";
-              const isExpense = tx.type === "expense";
-              const isTransfer = tx.type === "transfer";
-              const cat = categories.find((c) => c.id === tx.categoryId);
-              const sourceAcc = accounts.find((a) => a.id === tx.accountId);
-
-              let iconBg = "bg-primary/15";
-              let iconColor = "#B2C5FF";
-              let amountClass = "text-primary";
-              let prefix = "$";
-
-              if (isIncome) {
-                iconBg = "bg-secondary/15";
-                iconColor = "#4DE082";
-                amountClass = "text-secondary";
-                prefix = "+$";
-              } else if (isExpense) {
-                iconBg = "bg-error/15";
-                iconColor = "#FFB4AB";
-                amountClass = "text-error";
-                prefix = "-$";
-              } else if (isTransfer) {
-                prefix = "$";
-              }
-
-              const txDate = new Date(tx.date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              });
-
-              return (
-                <Link key={tx.id} href={"/transactions" as any} asChild>
-                  <ScaleButton
-                    activeScale={0.97}
-                    className="flex-row items-center justify-between bg-surface-container p-3.5 rounded-[20px] shadow-sm border border-outline-variant/20"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <View
-                        className={`w-11 h-11 rounded-2xl items-center justify-center ${iconBg}`}
-                      >
-                        <MaterialIcons
-                          name={
-                            isTransfer
-                              ? "swap-horiz"
-                              : (cat?.icon || "receipt") as any
-                          }
-                          size={22}
-                          color={iconColor}
-                        />
-                      </View>
-                      <View>
-                        <Text
-                          numberOfLines={1}
-                          className="text-sm font-bold text-on-surface max-w-[180px]"
-                        >
-                          {tx.payee}
-                        </Text>
-                        <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                          {isTransfer ? "Transfer" : cat?.name || "General"} • {sourceAcc?.name || "Account"} • {txDate}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="items-end">
-                      <AnimatedCounter
-                        value={tx.amount}
-                        prefix={prefix}
-                        decimals={2}
-                        className={`text-sm font-extrabold ${amountClass}`}
-                      />
-                    </View>
-                  </ScaleButton>
-                </Link>
-              );
-            })}
-
-            {transactions.length === 0 && (
-              <View className="py-12 items-center justify-center bg-surface-container rounded-[24px] border border-outline-variant/20">
-                <MaterialIcons
-                  name="receipt-long"
-                  size={40}
-                  color="#C3C6D6"
-                  style={{ opacity: 0.5 }}
-                />
-                <Text className="text-sm font-bold text-on-surface mt-2">
-                  No Recent Activity
-                </Text>
-                <Text className="text-xs text-on-surface-variant font-medium mt-1 mb-4">
-                  Log your expenses and income to see transactions here.
-                </Text>
-                <Link
-                  href={{ pathname: "/add-transaction", params: { type: "expense" } } as any}
-                  asChild
-                >
-                  <ScaleButton
-                    activeScale={0.92}
-                    className="px-4 py-2 bg-primary rounded-xl flex-row items-center gap-1.5"
-                  >
-                    <MaterialIcons name="add" size={18} color="#002C72" />
-                    <Text className="text-xs font-extrabold text-on-primary">
-                      Log Transaction
-                    </Text>
-                  </ScaleButton>
-                </Link>
-              </View>
-            )}
-          </View>
         </AnimatedBox>
       </ScrollView>
     </View>

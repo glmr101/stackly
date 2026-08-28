@@ -22,6 +22,7 @@ import {
   GestureDetector,
 } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(SCREEN_WIDTH - 40, 360);
@@ -237,13 +238,6 @@ function SingleStackedCard({
     }
   });
 
-  const formatBalance = (amount: number) => {
-    return `${currencySymbol}${amount.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
   return (
     <GestureDetector gesture={tapGesture}>
       <Animated.View
@@ -308,9 +302,12 @@ function SingleStackedCard({
           <Text style={styles.cardNumberText}>{card.cardNumber}</Text>
           <View style={styles.balanceContainer}>
             <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
-            <Text style={styles.balanceValue}>
-              {formatBalance(card.balance)}
-            </Text>
+            <AnimatedCounter
+              value={card.balance}
+              prefix={currencySymbol}
+              decimals={2}
+              style={styles.balanceValue}
+            />
           </View>
         </View>
 
