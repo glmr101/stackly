@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, ScrollView, Image, StyleSheet, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -21,6 +22,7 @@ interface SettingItem {
 }
 
 export default function Settings() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
@@ -432,6 +434,7 @@ export default function Settings() {
         visible={undoToast.visible}
         message={undoToast.message}
         duration={5000}
+        bottomOffset={Math.max(insets.bottom, 24)}
         onUndo={handleUndo}
         onDismiss={handleDismissUndo}
       />

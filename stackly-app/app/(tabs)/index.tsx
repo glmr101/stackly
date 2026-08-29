@@ -16,6 +16,9 @@ import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
 import { StackedCardCarousel, CardItem } from "@/components/ui/StackedCardCarousel";
+import { findPhilippineBank } from "@/data/philippineBanks";
+import { formatDueSchedule, getDueStatus, formatReadableDate } from "@/lib/subscriptions";
+import { DueSoonBadge } from "@/components/ui/DueSoonBadge";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -25,54 +28,49 @@ export default function Home() {
   const transactions = useAppStore((state) => state.transactions);
   const subscriptions = useAppStore((state) => state.subscriptions);
   const currency = useAppStore((state) => state.currency);
-  const postSubscription = useAppStore((state) => state.postSubscription);
-  const checkAndAutoPostDueSubscriptions = useAppStore(
-    (state) => state.checkAndAutoPostDueSubscriptions
-  );
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const currencySymbol = currency?.symbol || "$";
+  const currencySymbol = currency?.symbol || "₱";
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   const monthName = now.toLocaleDateString("en-US", { month: "long" });
 
   const cardItems: CardItem[] = accounts.map((acc, index) => {
-    let cardType: CardItem["cardType"] = "generic";
-    if (acc.type === "credit card") cardType = "visa";
-    else if (acc.type === "bank") cardType = "mastercard";
-    else if (acc.type === "investment") cardType = "amex";
-
-    const bgColors = ["#161B26", "#1E293B", "#0F172A", "#1A2332", "#1F2937"];
-    const secondaryColors = ["#252F48", "#334155", "#1E293B", "#2A374A", "#374151"];
+    const phBank = findPhilippineBank(acc.bankCode || acc.institution || acc.name);
+    const bankColor = phBank?.color || "#161B26";
+    const institution = acc.institution || phBank?.shortName || acc.name;
+    const cardNetwork = acc.cardNetwork || (acc.type === "credit card" ? "visa" : "mastercard");
+    const cardCategory = acc.cardCategory || (acc.type === "credit card" ? "credit" : "debit");
 
     return {
       id: acc.id,
-      bankName: acc.name || acc.institution,
-      cardType,
+      bankName: acc.name,
+      institution: institution,
+      accountName: acc.name,
+      cardType: cardNetwork,
+      cardNetwork: cardNetwork,
+      cardCategory: cardCategory,
+      accountType: acc.type,
       cardNumber: `•••• ${acc.id.replace(/\D/g, "").slice(-4) || "8421"}`,
-      cardHolder: (acc.institution || acc.name).toUpperCase(),
+      cardHolder: institution.toUpperCase(),
       expiryDate: "12/28",
       balance: acc.balance,
-      backgroundColor: bgColors[index % bgColors.length],
-      secondaryColor: secondaryColors[index % secondaryColors.length],
+      backgroundColor: bankColor,
+      secondaryColor: "rgba(255, 255, 255, 0.15)",
       textColor: "#FFFFFF",
+      icon: acc.icon,
+      bankCode: acc.bankCode || phBank?.code,
     };
   });
 
-  // Auto-post any overdue subscriptions on mount
-  useEffect(() => {
-    checkAndAutoPostDueSubscriptions();
-  }, []);
-
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    checkAndAutoPostDueSubscriptions();
     setTimeout(() => {
       setRefreshing(false);
     }, 600);
-  }, [checkAndAutoPostDueSubscriptions]);
+  }, []);
 
   let incomeThisMonth = 0;
   let expensesThisMonth = 0;
@@ -131,26 +129,20 @@ export default function Home() {
     .slice(0, 3)
     .map((sub) => {
       const chargeDate = new Date(sub.nextChargeDate);
-      const isOverdue = chargeDate.getTime() < Date.now();
+      const dueStatus = getDueStatus(sub.nextChargeDate);
       return {
         id: sub.id,
         name: sub.name,
         amount: sub.amount,
-        dueDate: chargeDate.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        isOverdue,
+        dueDate: formatReadableDate(sub.nextChargeDate),
+        scheduleLabel: formatDueSchedule(sub),
+        isOverdue: dueStatus.isOverdue,
+        isDueSoon: dueStatus.isDueSoon,
+        dueStatusLabel: dueStatus.label,
         icon: sub.icon,
         color: sub.color || "#B2C5FF",
       };
     });
-
-  const handlePostBill = (subId: string) => {
-    if (accounts.length > 0) {
-      postSubscription(subId, accounts[0].id);
-    }
-  };
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -204,21 +196,18 @@ export default function Home() {
             <View className="flex-row items-center gap-1.5 bg-surface-container-highest/80 px-2.5 py-1 rounded-full border border-white/5">
               <View className="relative w-2 h-2 items-center justify-center">
                 <Animated.View
-                  className={`absolute w-full h-full rounded-full ${
-                    trendIsPositive ? "bg-secondary" : "bg-error"
-                  }`}
+                  className={`absolute w-full h-full rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
+                    }`}
                   style={animatedPulseStyle}
                 />
                 <View
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    trendIsPositive ? "bg-secondary" : "bg-error"
-                  }`}
+                  className={`w-1.5 h-1.5 rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
+                    }`}
                 />
               </View>
               <Text
-                className={`text-[11px] font-bold ${
-                  trendIsPositive ? "text-secondary" : "text-error"
-                }`}
+                className={`text-[11px] font-bold ${trendIsPositive ? "text-secondary" : "text-error"
+                  }`}
               >
                 {trendIsPositive ? "+" : "-"}
                 {currencySymbol}
@@ -369,23 +358,14 @@ export default function Home() {
                 </Text>
               </View>
             </View>
-            <View className="flex-row items-center gap-3">
-              <Link href={"/add-account" as any} asChild>
-                <ScaleButton activeScale={0.92} hitSlop={8} className="flex-row items-center gap-1">
-                  <MaterialIcons name="add" size={16} color="#B2C5FF" />
-                  <Text className="text-xs font-semibold text-primary">
-                    Add
-                  </Text>
-                </ScaleButton>
-              </Link>
-              <Link href="/accounts" asChild>
-                <ScaleButton activeScale={0.92} hitSlop={8}>
-                  <Text className="text-xs font-semibold text-primary">
-                    View all →
-                  </Text>
-                </ScaleButton>
-              </Link>
-            </View>
+            <Link href={"/add-account" as any} asChild>
+              <ScaleButton activeScale={0.92} hitSlop={8} className="flex-row items-center gap-1">
+                <MaterialIcons name="add" size={16} color="#B2C5FF" />
+                <Text className="text-xs font-semibold text-primary">
+                  Add
+                </Text>
+              </ScaleButton>
+            </Link>
           </View>
 
           {cardItems.length > 0 ? (
@@ -467,16 +447,23 @@ export default function Home() {
                         color={bill.color}
                       />
                     </View>
-                    <View>
-                      <Text className="text-sm font-semibold text-on-surface">
-                        {bill.name}
-                      </Text>
+                    <View className="flex-1 mr-2">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-sm font-semibold text-on-surface" numberOfLines={1}>
+                          {bill.name}
+                        </Text>
+                        {bill.isDueSoon && (
+                          <DueSoonBadge
+                            label={bill.dueStatusLabel}
+                            isOverdue={bill.isOverdue}
+                          />
+                        )}
+                      </View>
                       <Text
-                        className={`text-xs font-medium ${
-                          bill.isOverdue ? "text-error font-bold" : "text-on-surface-variant"
-                        }`}
+                        className={`text-xs font-medium ${bill.isOverdue ? "text-error font-bold" : "text-on-surface-variant"
+                          }`}
                       >
-                        {bill.isOverdue ? "Overdue" : `Due ${bill.dueDate}`}
+                        {bill.scheduleLabel} • {bill.isOverdue ? "Overdue" : `Due ${bill.dueDate}`}
                       </Text>
                     </View>
                   </View>
@@ -484,20 +471,10 @@ export default function Home() {
                   <View className="items-end">
                     <AnimatedCounter
                       value={bill.amount}
-                      prefix="-$"
+                      prefix={`-${currencySymbol}`}
                       decimals={2}
                       className="text-sm font-bold text-on-surface"
                     />
-                    <ScaleButton
-                      activeScale={0.9}
-                      className="px-2.5 py-0.5 rounded-full bg-primary/15 border border-primary/25 flex-row items-center gap-1 mt-1"
-                      onPress={() => handlePostBill(bill.id)}
-                    >
-                      <MaterialIcons name="receipt-long" size={12} color="#B2C5FF" />
-                      <Text className="text-[10px] font-bold text-primary">
-                        Post
-                      </Text>
-                    </ScaleButton>
                   </View>
                 </View>
               ))}

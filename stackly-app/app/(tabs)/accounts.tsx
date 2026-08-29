@@ -14,6 +14,8 @@ export default function Accounts() {
   const insets = useSafeAreaInsets();
   const accounts = useAppStore((state) => state.accounts);
   const savingsGoals = useAppStore((state) => state.savingsGoals);
+  const currency = useAppStore((state) => state.currency);
+  const currencySymbol = currency?.symbol || "$";
   const addSavingsContribution = useAppStore(
     (state) => state.addSavingsContribution
   );
@@ -79,7 +81,7 @@ export default function Accounts() {
           <View className="my-1">
             <AnimatedCounter
               value={totalNetWorth}
-              prefix="$"
+              prefix={currencySymbol}
               decimals={2}
               showDecimalsSmall={true}
               className="text-4xl font-extrabold text-on-surface tracking-tight"
@@ -98,7 +100,7 @@ export default function Accounts() {
               </View>
               <AnimatedCounter
                 value={totalLiquid}
-                prefix="$"
+                prefix={currencySymbol}
                 decimals={0}
                 className="text-sm font-bold text-on-surface"
               />
@@ -113,7 +115,7 @@ export default function Accounts() {
               </View>
               <AnimatedCounter
                 value={totalCredit}
-                prefix="$"
+                prefix={currencySymbol}
                 decimals={0}
                 className="text-sm font-bold text-on-surface"
               />
@@ -128,7 +130,7 @@ export default function Accounts() {
               </View>
               <AnimatedCounter
                 value={totalInvestments}
-                prefix="$"
+                prefix={currencySymbol}
                 decimals={0}
                 className="text-sm font-bold text-on-surface"
               />
@@ -208,14 +210,14 @@ export default function Accounts() {
                       <Text className="text-sm font-bold text-on-surface">
                         {account.name}
                       </Text>
-                      <View className="flex-row items-center gap-1.5 mt-0.5">
+                      <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
                         <Text className="text-xs text-on-surface-variant font-medium">
                           {account.institution}
                         </Text>
                         <View className="w-1 h-1 rounded-full bg-outline-variant" />
                         <View className="bg-surface-container-highest px-2 py-0.5 rounded-md">
                           <Text className="text-[10px] font-semibold uppercase text-primary">
-                            {account.type}
+                            {account.cardCategory ? `${account.cardCategory}${account.cardNetwork ? ` • ${account.cardNetwork}` : ''}` : account.type}
                           </Text>
                         </View>
                       </View>
@@ -225,7 +227,7 @@ export default function Accounts() {
                   <View className="items-end">
                     <AnimatedCounter
                       value={account.balance}
-                      prefix="$"
+                      prefix={currencySymbol}
                       decimals={2}
                       className="text-base font-extrabold text-on-surface"
                     />
@@ -328,12 +330,12 @@ export default function Accounts() {
                     <View className="items-end">
                       <AnimatedCounter
                         value={goal.currentAmount}
-                        prefix="$"
+                        prefix={currencySymbol}
                         decimals={0}
                         className="text-base font-extrabold text-on-surface"
                       />
                       <Text className="text-xs text-on-surface-variant font-medium">
-                        of ${goal.targetAmount.toLocaleString()}
+                        of {currencySymbol}{goal.targetAmount.toLocaleString()}
                       </Text>
                     </View>
                   </View>
@@ -360,7 +362,7 @@ export default function Accounts() {
                     >
                       <MaterialIcons name="add" size={16} color="#B2C5FF" />
                       <Text className="text-xs font-bold text-primary">
-                        + $100
+                        + {currencySymbol}100
                       </Text>
                     </ScaleButton>
                   </View>

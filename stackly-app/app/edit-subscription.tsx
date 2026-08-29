@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { GrabHandle } from "@/components/ui/GrabHandle";
+import { Toggle } from "@/components/ui/Toggle";
+import { DueSoonBadge } from "@/components/ui/DueSoonBadge";
 import {
   BillingCycle,
   WEEKDAYS,
@@ -21,26 +24,66 @@ import {
   calculateNextChargeDate,
   formatDueSchedule,
   formatReadableDate,
+  getDueStatus,
 } from "@/lib/subscriptions";
 
-export default function AddSubscription() {
+export default function EditSubscription() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
-  const addSubscription = useAppStore((state) => state.addSubscription);
+  const subscriptions = useAppStore((state) => state.subscriptions);
+  const updateSubscription = useAppStore((state) => state.updateSubscription);
+  const deleteSubscription = useAppStore((state) => state.deleteSubscription);
   const categories = useAppStore((state) => state.categories);
   const currency = useAppStore((state) => state.currency);
 
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const existingSub = useMemo(() => {
+    return subscriptions.find((s) => s.id === id);
+  }, [subscriptions, id]);
+
+  const [name, setName] = useState(existingSub?.name || "");
+  const [amount, setAmount] = useState(
+    existingSub?.amount !== undefined ? existingSub.amount.toString() : ""
+  );
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(
+    existingSub?.billingCycle || "monthly"
+  );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    null
+    existingSub?.categoryId || null
+  );
+  const [active, setActive] = useState<boolean>(
+    existingSub ? existingSub.active : true
   );
 
   // Recurrence due day state
-  const [dueDay, setDueDay] = useState(6); // Default 6th of the month
-  const [dueMonth, setDueMonth] = useState(new Date().getMonth()); // For yearly
-  const [selectedColor, setSelectedColor] = useState("#B2C5FF");
+  const initialDate = existingSub?.nextChargeDate
+    ? new Date(existingSub.nextChargeDate)
+    : new Date();
+  const [dueDay, setDueDay] = useState(
+    existingSub?.dueDay !== undefined ? existingSub.dueDay : initialDate.getDate()
+  );
+  const [dueMonth, setDueMonth] = useState(initialDate.getMonth());
+  const [selectedColor, setSelectedColor] = useState(
+    existingSub?.color || "#B2C5FF"
+  );
+
+  useEffect(() => {
+    if (existingSub) {
+      setName(existingSub.name);
+      setAmount(existingSub.amount.toString());
+      setBillingCycle(existingSub.billingCycle);
+      setSelectedCategoryId(existingSub.categoryId || null);
+      setActive(existingSub.active);
+      setSelectedColor(existingSub.color || "#B2C5FF");
+      const d = existingSub.nextChargeDate
+        ? new Date(existingSub.nextChargeDate)
+        : new Date();
+      setDueDay(
+        existingSub.dueDay !== undefined ? existingSub.dueDay : d.getDate()
+      );
+      setDueMonth(d.getMonth());
+    }
+  }, [existingSub]);
 
   const colors = [
     "#B2C5FF",
@@ -71,9 +114,12 @@ export default function AddSubscription() {
     });
   }, [billingCycle, dueDay, computedNextDate]);
 
+  const dueStatus = useMemo(() => {
+    return getDueStatus(computedNextDate);
+  }, [computedNextDate]);
+
   const handleCycleChange = (cycle: BillingCycle) => {
     setBillingCycle(cycle);
-    // Set intuitive default day when switching cycle
     if (cycle === "weekly" && (dueDay > 6 || dueDay < 0)) {
       setDueDay(1); // Monday
     } else if (cycle !== "weekly" && dueDay < 1) {
@@ -82,25 +128,68 @@ export default function AddSubscription() {
   };
 
   const handleSave = () => {
+    if (!id || !existingSub) return;
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0 || !name.trim()) {
+      Alert.alert("Invalid Input", "Please enter a valid subscription name and amount.");
       return;
     }
 
-    addSubscription({
+    updateSubscription(id, {
       name: name.trim(),
       categoryId: selectedCategoryId || undefined,
       amount: parsedAmount,
       billingCycle,
       dueDay,
       nextChargeDate: computedNextDate,
-      icon: "subscriptions",
-      active: true,
+      active,
       color: selectedColor,
     });
 
     router.back();
   };
+
+  const handleDelete = () => {
+    if (!id || !existingSub) return;
+
+    Alert.alert(
+      "Delete Subscription",
+      `Are you sure you want to delete "${existingSub.name}"? You can undo this action.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            deleteSubscription(id);
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  if (!existingSub) {
+    return (
+      <View className="flex-1 bg-background items-center justify-center p-6">
+        <GrabHandle />
+        <MaterialIcons name="error-outline" size={48} color="#FF897D" />
+        <Text className="text-lg font-bold text-on-surface mt-3 text-center">
+          Subscription Not Found
+        </Text>
+        <Text className="text-xs text-on-surface-variant text-center mt-1 mb-6">
+          This recurring bill might have already been removed.
+        </Text>
+        <ScaleButton
+          activeScale={0.92}
+          className="px-6 py-3 rounded-2xl bg-surface-container border border-outline-variant/30"
+          onPress={() => router.back()}
+        >
+          <Text className="text-sm font-bold text-on-surface">Go Back</Text>
+        </ScaleButton>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -120,9 +209,17 @@ export default function AddSubscription() {
               <MaterialIcons name="close" size={22} color="#DFE2F1" />
             </ScaleButton>
             <Text className="text-xl font-extrabold text-on-surface tracking-tight">
-              Add Subscription
+              Edit Subscription
             </Text>
           </View>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleDelete}
+            className="w-10 h-10 rounded-full bg-error/15 border border-error/25 items-center justify-center"
+          >
+            <MaterialIcons name="delete-outline" size={20} color="#FF897D" />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -147,7 +244,6 @@ export default function AddSubscription() {
                 placeholderTextColor="#C3C6D650"
                 value={amount}
                 onChangeText={setAmount}
-                autoFocus={true}
               />
             </View>
           </View>
@@ -167,6 +263,35 @@ export default function AddSubscription() {
                 onChangeText={setName}
               />
             </View>
+          </View>
+
+          {/* Active Status Card */}
+          <View className="mx-5 mb-6 p-4 rounded-2xl bg-surface-container border border-outline-variant/30 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3 flex-1 mr-3">
+              <View
+                className="w-10 h-10 rounded-xl items-center justify-center"
+                style={{
+                  backgroundColor: active ? "rgba(77, 224, 130, 0.15)" : "rgba(255, 180, 171, 0.15)",
+                }}
+              >
+                <MaterialIcons
+                  name={active ? "check-circle" : "pause-circle-outline"}
+                  size={22}
+                  color={active ? "#4DE082" : "#FFB4AB"}
+                />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-on-surface">
+                  {active ? "Bill is Active" : "Bill is Paused"}
+                </Text>
+                <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                  {active
+                    ? "Included in monthly calculations and due reminders."
+                    : "Temporarily excluded from active totals."}
+                </Text>
+              </View>
+            </View>
+            <Toggle value={active} onValueChange={setActive} />
           </View>
 
           {/* Billing Cycle Selection */}
@@ -306,18 +431,27 @@ export default function AddSubscription() {
             )}
 
             {/* Live Recurrence Preview Card */}
-            <View className="p-4 rounded-2xl bg-surface-container-high border border-primary/25 shadow-sm flex-row items-center gap-3.5">
-              <View className="w-10 h-10 rounded-xl bg-primary/15 items-center justify-center border border-primary/20">
-                <MaterialIcons name="event-repeat" size={22} color="#B2C5FF" />
+            <View className="p-4 rounded-2xl bg-surface-container-high border border-primary/25 shadow-sm flex-row items-center justify-between gap-3">
+              <View className="flex-row items-center gap-3.5 flex-1">
+                <View className="w-10 h-10 rounded-xl bg-primary/15 items-center justify-center border border-primary/20">
+                  <MaterialIcons name="event-repeat" size={22} color="#B2C5FF" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-extrabold text-primary tracking-tight">
+                    {scheduleDescription}
+                  </Text>
+                  <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                    Next charge: {formatReadableDate(computedNextDate)}
+                  </Text>
+                </View>
               </View>
-              <View className="flex-1">
-                <Text className="text-sm font-extrabold text-primary tracking-tight">
-                  {scheduleDescription}
-                </Text>
-                <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                  Next charge: {formatReadableDate(computedNextDate)}
-                </Text>
-              </View>
+
+              {dueStatus.isDueSoon && (
+                <DueSoonBadge
+                  label={dueStatus.label}
+                  isOverdue={dueStatus.isOverdue}
+                />
+              )}
             </View>
           </View>
 
@@ -402,7 +536,7 @@ export default function AddSubscription() {
             >
               <MaterialIcons name="check" size={22} color="#002C72" />
               <Text className="text-base font-extrabold text-on-primary">
-                Save Subscription
+                Save Changes
               </Text>
             </ScaleButton>
           </View>
@@ -411,4 +545,3 @@ export default function AddSubscription() {
     </View>
   );
 }
-

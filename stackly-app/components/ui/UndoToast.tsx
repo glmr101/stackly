@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,6 +16,7 @@ export interface UndoToastProps {
   visible: boolean;
   message: string;
   duration?: number; // duration in ms, default 5000
+  bottomOffset?: number; // custom bottom offset in px
   onUndo: () => void;
   onDismiss: () => void;
 }
@@ -23,9 +25,11 @@ export function UndoToast({
   visible,
   message,
   duration = 5000,
+  bottomOffset,
   onUndo,
   onDismiss,
 }: UndoToastProps) {
+  const insets = useSafeAreaInsets();
   const [secondsRemaining, setSecondsRemaining] = useState(Math.ceil(duration / 1000));
   const progress = useSharedValue(1);
   const translateY = useSharedValue(100);
@@ -118,13 +122,17 @@ export function UndoToast({
 
   if (!visible) return null;
 
+  const computedBottom =
+    bottomOffset !== undefined ? bottomOffset : insets.bottom + 84;
+
   return (
     <Animated.View
       style={[
         styles.container,
+        { bottom: computedBottom },
         containerAnimatedStyle,
       ]}
-      className="absolute bottom-8 left-4 right-4 z-50 rounded-[22px] bg-[#1B1F2B] border border-primary/30 shadow-2xl overflow-hidden"
+      className="absolute left-4 right-4 z-50 rounded-[22px] bg-[#1B1F2B] border border-primary/30 shadow-2xl overflow-hidden"
     >
       <View className="p-4 flex-row items-center justify-between gap-3">
         {/* Left Icon and Message */}

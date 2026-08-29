@@ -1,29 +1,54 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
+import { DueSoonBadge } from "@/components/ui/DueSoonBadge";
+import { UndoToast } from "@/components/ui/UndoToast";
+import {
+  formatDueSchedule,
+  formatReadableDate,
+  getDueStatus,
+} from "@/lib/subscriptions";
 
 export default function Subscriptions() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const subs = useAppStore((state) => state.subscriptions);
   const categories = useAppStore((state) => state.categories);
-  const accounts = useAppStore((state) => state.accounts);
+  const currency = useAppStore((state) => state.currency);
   const toggleSubscription = useAppStore((state) => state.toggleSubscription);
-  const postSubscription = useAppStore((state) => state.postSubscription);
+  const lastDeletedSubscription = useAppStore(
+    (state) => state.lastDeletedSubscription
+  );
+  const restoreLastDeletedSubscription = useAppStore(
+    (state) => state.restoreLastDeletedSubscription
+  );
+  const clearLastDeletedSubscription = useAppStore(
+    (state) => state.clearLastDeletedSubscription
+  );
 
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("active");
+  const currencySymbol = currency?.symbol || "$";
+  // Default to "all" so toggles don't cause items to vanish
+  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
 
   const totalMonthlySpend = subs
     .filter((s) => s.active)
     .reduce((acc, curr) => {
-      const monthlyAmount =
-        curr.billingCycle === "yearly" ? curr.amount / 12 : curr.amount;
+      let monthlyAmount = curr.amount;
+      if (curr.billingCycle === "weekly") {
+        monthlyAmount = (curr.amount * 52) / 12;
+      } else if (curr.billingCycle === "quarterly") {
+        monthlyAmount = curr.amount / 3;
+      } else if (curr.billingCycle === "yearly") {
+        monthlyAmount = curr.amount / 12;
+      }
       return acc + monthlyAmount;
     }, 0);
 
@@ -36,12 +61,6 @@ export default function Subscriptions() {
       : filter === "active"
       ? subs.filter((s) => s.active)
       : subs.filter((s) => !s.active);
-
-  const handlePost = (subId: string) => {
-    if (accounts.length > 0) {
-      postSubscription(subId, accounts[0].id);
-    }
-  };
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -70,7 +89,7 @@ export default function Subscriptions() {
           <View className="flex-row items-baseline gap-2 my-1">
             <AnimatedCounter
               value={totalMonthlySpend}
-              prefix="$"
+              prefix={currencySymbol}
               decimals={2}
               className="text-4xl font-extrabold text-on-surface tracking-tight"
             />
@@ -95,7 +114,7 @@ export default function Subscriptions() {
               </Text>
               <AnimatedCounter
                 value={totalAnnualSpend}
-                prefix="$"
+                prefix={currencySymbol}
                 decimals={0}
                 className="text-base font-bold text-on-surface"
               />
@@ -106,8 +125,8 @@ export default function Subscriptions() {
         {/* Filter Tabs */}
         <AnimatedBox delay={60} className="mx-5 mb-5 flex-row gap-2">
           {[
-            { label: "Active", value: "active" as const },
             { label: "All", value: "all" as const },
+            { label: "Active", value: "active" as const },
             { label: "Paused", value: "inactive" as const },
           ].map((f) => {
             const isSelected = filter === f.value;
@@ -137,17 +156,33 @@ export default function Subscriptions() {
         {/* Subscriptions List */}
         <AnimatedBox delay={90} className="px-5 flex-col gap-3.5">
           {filteredSubs.map((sub) => {
-            const date = new Date(sub.nextChargeDate);
             const cat = categories.find((c) => c.id === sub.categoryId);
-            const formattedDate = date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
+            const scheduleText = formatDueSchedule(sub);
+            const nextDateFormatted = formatReadableDate(sub.nextChargeDate);
+            const dueStatus = getDueStatus(sub.nextChargeDate);
+
+            const frequencySuffix =
+              sub.billingCycle === "yearly"
+                ? "/yr"
+                : sub.billingCycle === "weekly"
+                ? "/wk"
+                : sub.billingCycle === "quarterly"
+                ? "/qtr"
+                : "/mo";
 
             return (
-              <View
+              <TouchableOpacity
                 key={sub.id}
-                className="bg-surface-container rounded-[24px] p-5 border border-outline-variant/30 overflow-hidden shadow-sm relative"
+                activeOpacity={0.88}
+                onPress={() =>
+                  router.push({
+                    pathname: "/edit-subscription" as any,
+                    params: { id: sub.id },
+                  })
+                }
+                className={`bg-surface-container rounded-[24px] p-5 border border-outline-variant/30 overflow-hidden shadow-sm relative ${
+                  !sub.active ? "opacity-75" : ""
+                }`}
               >
                 {/* Brand Color Aura */}
                 <View
@@ -155,8 +190,8 @@ export default function Subscriptions() {
                   style={{ backgroundColor: sub.color || "#B2C5FF" }}
                 />
 
-                <View className="flex-row justify-between items-start z-10 mb-3">
-                  <View className="flex-row gap-3.5 items-center">
+                <View className="flex-row justify-between items-start z-10 mb-3.5">
+                  <View className="flex-row gap-3.5 items-center flex-1 mr-3">
                     <View
                       className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm"
                       style={{ backgroundColor: `${sub.color || "#B2C5FF"}25` }}
@@ -167,62 +202,79 @@ export default function Subscriptions() {
                         color={sub.color || "#B2C5FF"}
                       />
                     </View>
-                    <View>
-                      <Text className="text-base font-bold text-on-surface">
-                        {sub.name}
-                      </Text>
-                      <View className="flex-row items-center gap-1.5 mt-0.5">
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2">
+                        <Text
+                          className="text-base font-bold text-on-surface flex-1"
+                          numberOfLines={1}
+                        >
+                          {sub.name}
+                        </Text>
+                      </View>
+
+                      <View className="flex-row items-center gap-1.5 mt-0.5 flex-wrap">
                         <Text className="text-xs text-on-surface-variant font-medium">
                           {cat?.name || "General"}
                         </Text>
                         <View className="w-1 h-1 rounded-full bg-outline-variant" />
-                        <Text className="text-xs text-primary font-semibold capitalize">
-                          {sub.billingCycle}
+                        <Text className="text-xs text-primary font-bold">
+                          {scheduleText}
                         </Text>
                       </View>
                     </View>
                   </View>
 
-                  <Toggle
-                    value={sub.active}
-                    onValueChange={() => toggleSubscription(sub.id)}
-                  />
+                  <View className="items-end gap-2">
+                    <Toggle
+                      value={sub.active}
+                      onValueChange={() => toggleSubscription(sub.id)}
+                    />
+                  </View>
                 </View>
+
+                {/* Due Warning Banner if active and due within 7 days */}
+                {sub.active && dueStatus.isDueSoon && (
+                  <View className="mb-3.5 flex-row items-center z-10">
+                    <DueSoonBadge
+                      label={dueStatus.label}
+                      isOverdue={dueStatus.isOverdue}
+                    />
+                  </View>
+                )}
 
                 {/* Bottom Row */}
                 <View className="flex-row justify-between items-center pt-3 border-t border-white/5 z-10">
                   <View className="flex-col">
                     <Text className="text-[11px] text-on-surface-variant font-medium">
-                      Next Charge
+                      Next Billing Date
                     </Text>
-                    <Text className="text-xs font-bold text-on-surface mt-0.5">
-                      {formattedDate}
-                    </Text>
+                    <View className="flex-row items-center gap-2 mt-0.5">
+                      <Text className="text-xs font-bold text-on-surface">
+                        {nextDateFormatted}
+                      </Text>
+                      {!sub.active && (
+                        <View className="px-2 py-0.5 rounded-full bg-surface-container-high border border-outline-variant/30">
+                          <Text className="text-[10px] font-bold text-on-surface-variant">
+                            Paused
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
-                  <View className="flex-row items-center gap-3">
-                    <View className="items-end">
-                      <AnimatedCounter
-                        value={sub.amount}
-                        prefix="$"
-                        decimals={2}
-                        className="text-base font-extrabold text-on-surface"
-                      />
-                    </View>
-
-                    <ScaleButton
-                      activeScale={0.9}
-                      className="px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/25 flex-row items-center gap-1"
-                      onPress={() => handlePost(sub.id)}
-                    >
-                      <MaterialIcons name="receipt-long" size={14} color="#B2C5FF" />
-                      <Text className="text-xs font-bold text-primary">
-                        Post
-                      </Text>
-                    </ScaleButton>
+                  <View className="flex-row items-baseline gap-1">
+                    <AnimatedCounter
+                      value={sub.amount}
+                      prefix={currencySymbol}
+                      decimals={2}
+                      className="text-lg font-extrabold text-on-surface"
+                    />
+                    <Text className="text-xs font-medium text-on-surface-variant">
+                      {frequencySuffix}
+                    </Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
 
@@ -241,6 +293,15 @@ export default function Subscriptions() {
           )}
         </AnimatedBox>
       </ScrollView>
+
+      {/* Undo Toast Notification */}
+      <UndoToast
+        visible={!!lastDeletedSubscription}
+        message={`"${lastDeletedSubscription?.name || 'Subscription'}" deleted`}
+        duration={5000}
+        onUndo={restoreLastDeletedSubscription}
+        onDismiss={clearLastDeletedSubscription}
+      />
     </View>
   );
 }

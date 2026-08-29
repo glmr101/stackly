@@ -17,10 +17,14 @@ interface AppState {
 
   addAccount: (account: Omit<Account, 'id'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  lastDeletedSubscription: Subscription | null;
   addSubscription: (subscription: Omit<Subscription, 'id'>) => void;
+  updateSubscription: (id: string, updates: Partial<Omit<Subscription, 'id'>>) => void;
+  deleteSubscription: (id: string) => void;
+  restoreSubscription: (subscription: Subscription) => void;
+  restoreLastDeletedSubscription: () => void;
+  clearLastDeletedSubscription: () => void;
   toggleSubscription: (id: string) => void;
-  postSubscription: (id: string, accountId: string) => void;
-  checkAndAutoPostDueSubscriptions: () => void;
 
   setBudgetGoal: (goal: Omit<BudgetGoal, 'id'> | BudgetGoal) => void;
   addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
@@ -47,6 +51,7 @@ export const useAppStore = create<AppState>()(
       savingsGoals: MOCK_SAVINGS_GOALS,
       currency: DEFAULT_CURRENCY,
       region: DEFAULT_REGION,
+      lastDeletedSubscription: null,
 
       addAccount: (account) =>
         set((state) => ({
@@ -98,107 +103,55 @@ export const useAppStore = create<AppState>()(
           ],
         })),
 
+      updateSubscription: (id, updates) =>
+        set((state) => ({
+          subscriptions: state.subscriptions.map((sub) =>
+            sub.id === id ? { ...sub, ...updates } : sub
+          ),
+        })),
+
+      deleteSubscription: (id) =>
+        set((state) => {
+          const subToDelete = state.subscriptions.find((s) => s.id === id) || null;
+          return {
+            lastDeletedSubscription: subToDelete,
+            subscriptions: state.subscriptions.filter((sub) => sub.id !== id),
+          };
+        }),
+
+      restoreSubscription: (subscription) =>
+        set((state) => {
+          const exists = state.subscriptions.some((s) => s.id === subscription.id);
+          if (exists) return state;
+          return {
+            subscriptions: [subscription, ...state.subscriptions],
+          };
+        }),
+
+      restoreLastDeletedSubscription: () =>
+        set((state) => {
+          if (!state.lastDeletedSubscription) return state;
+          const exists = state.subscriptions.some(
+            (s) => s.id === state.lastDeletedSubscription!.id
+          );
+          if (exists) {
+            return { lastDeletedSubscription: null };
+          }
+          return {
+            subscriptions: [state.lastDeletedSubscription, ...state.subscriptions],
+            lastDeletedSubscription: null,
+          };
+        }),
+
+      clearLastDeletedSubscription: () =>
+        set({ lastDeletedSubscription: null }),
+
       toggleSubscription: (id) =>
         set((state) => ({
           subscriptions: state.subscriptions.map((sub) =>
             sub.id === id ? { ...sub, active: !sub.active } : sub
           ),
         })),
-
-      postSubscription: (id, accountId) =>
-        set((state) => {
-          const subscription = state.subscriptions.find(s => s.id === id);
-          if (!subscription) return state;
-
-          const newTransaction: Transaction = {
-            id: `t${Date.now()}`,
-            type: 'expense',
-            amount: subscription.amount,
-            payee: subscription.name,
-            categoryId: subscription.categoryId,
-            date: new Date().toISOString(),
-            accountId: accountId,
-          };
-
-          const updatedAccounts = state.accounts.map((acc) => {
-            if (acc.id === accountId) {
-              return { ...acc, balance: acc.balance - subscription.amount };
-            }
-            return acc;
-          });
-
-          const nextDate = new Date(subscription.nextChargeDate);
-          if (subscription.billingCycle === 'monthly') {
-            nextDate.setMonth(nextDate.getMonth() + 1);
-          } else {
-            nextDate.setFullYear(nextDate.getFullYear() + 1);
-          }
-
-          const updatedSubscriptions = state.subscriptions.map(s => 
-            s.id === id ? { ...s, nextChargeDate: nextDate.toISOString() } : s
-          );
-
-          return {
-            transactions: [newTransaction, ...state.transactions],
-            accounts: updatedAccounts,
-            subscriptions: updatedSubscriptions,
-          };
-        }),
-
-      checkAndAutoPostDueSubscriptions: () =>
-        set((state) => {
-          if (state.accounts.length === 0) return state;
-          const now = new Date().getTime();
-          const dueSubs = state.subscriptions.filter(
-            (sub) => sub.active && new Date(sub.nextChargeDate).getTime() <= now
-          );
-
-          if (dueSubs.length === 0) return state;
-
-          const defaultAccountId = state.accounts[0].id;
-          const newTransactions: Transaction[] = [];
-          let updatedAccounts = [...state.accounts];
-          const updatedSubscriptions = [...state.subscriptions];
-
-          dueSubs.forEach((sub, idx) => {
-            newTransactions.push({
-              id: `t${Date.now() + idx}`,
-              type: 'expense',
-              amount: sub.amount,
-              payee: sub.name,
-              categoryId: sub.categoryId,
-              date: new Date().toISOString(),
-              accountId: defaultAccountId,
-            });
-
-            updatedAccounts = updatedAccounts.map((acc) =>
-              acc.id === defaultAccountId
-                ? { ...acc, balance: acc.balance - sub.amount }
-                : acc
-            );
-
-            const nextDate = new Date(sub.nextChargeDate);
-            if (sub.billingCycle === 'monthly') {
-              nextDate.setMonth(nextDate.getMonth() + 1);
-            } else {
-              nextDate.setFullYear(nextDate.getFullYear() + 1);
-            }
-
-            const subIdx = updatedSubscriptions.findIndex((s) => s.id === sub.id);
-            if (subIdx !== -1) {
-              updatedSubscriptions[subIdx] = {
-                ...updatedSubscriptions[subIdx],
-                nextChargeDate: nextDate.toISOString(),
-              };
-            }
-          });
-
-          return {
-            transactions: [...newTransactions, ...state.transactions],
-            accounts: updatedAccounts,
-            subscriptions: updatedSubscriptions,
-          };
-        }),
 
       setBudgetGoal: (goal) => 
         set((state) => {
@@ -267,6 +220,16 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'stackly-storage', // unique name
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 2 && persistedState) {
+          return {
+            ...persistedState,
+            categories: MOCK_CATEGORIES,
+          };
+        }
+        return persistedState;
+      },
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

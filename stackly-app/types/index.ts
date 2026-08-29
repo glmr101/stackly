@@ -30,6 +30,9 @@ export type Account = {
   balance: number;
   type: 'bank' | 'e-wallet' | 'cash' | 'credit card' | 'investment';
   icon: MaterialIconName;
+  cardCategory?: 'debit' | 'credit';
+  cardNetwork?: 'visa' | 'mastercard' | 'generic';
+  bankCode?: string;
 };
 
 export type Subscription = {
@@ -37,11 +40,12 @@ export type Subscription = {
   name: string;
   categoryId?: string;
   amount: number;
-  billingCycle: 'monthly' | 'yearly';
+  billingCycle: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   nextChargeDate: string; // ISO String
   icon: MaterialIconName;
   active: boolean;
   color: string;
+  dueDay?: number;
 };
 
 export type BudgetGoal = {

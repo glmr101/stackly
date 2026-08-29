@@ -23,6 +23,7 @@ import {
 } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { MaterialIconName, Account } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(SCREEN_WIDTH - 40, 360);
@@ -33,14 +34,21 @@ const SCALE_DIFF = 0.035;
 export interface CardItem {
   id: string;
   bankName: string;
+  institution?: string;
+  accountName?: string;
   cardType: 'visa' | 'mastercard' | 'amex' | 'generic';
-  cardNumber: string;
-  cardHolder: string;
-  expiryDate: string;
+  cardNetwork?: 'visa' | 'mastercard' | 'generic';
+  cardCategory?: 'debit' | 'credit';
+  accountType?: Account['type'] | string;
+  cardNumber?: string;
+  cardHolder?: string;
+  expiryDate?: string;
   balance: number;
   backgroundColor: string;
   secondaryColor?: string;
   textColor?: string;
+  icon?: MaterialIconName;
+  bankCode?: string;
 }
 
 export interface StackedCardCarouselProps {
@@ -53,39 +61,57 @@ export interface StackedCardCarouselProps {
 const DEFAULT_CARDS: CardItem[] = [
   {
     id: 'card-1',
-    bankName: 'Chase Sapphire Reserve',
-    cardType: 'visa',
+    bankName: 'BPI Checking',
+    institution: 'BPI',
+    accountName: 'BPI Checking',
+    cardType: 'mastercard',
+    cardNetwork: 'mastercard',
+    cardCategory: 'debit',
+    accountType: 'bank',
     cardNumber: '•••• 8421',
-    cardHolder: 'ALEX RIVERA',
+    cardHolder: 'BPI',
     expiryDate: '08/28',
     balance: 14850.75,
-    backgroundColor: '#161B26',
-    secondaryColor: '#252F48',
+    backgroundColor: '#B11116',
+    secondaryColor: 'rgba(255, 255, 255, 0.15)',
     textColor: '#FFFFFF',
+    icon: 'account-balance',
   },
   {
     id: 'card-2',
-    bankName: 'Apple Card Goldman',
-    cardType: 'mastercard',
+    bankName: 'Maya Savings',
+    institution: 'Maya Bank',
+    accountName: 'Maya Savings',
+    cardType: 'visa',
+    cardNetwork: 'visa',
+    cardCategory: 'debit',
+    accountType: 'digital bank',
     cardNumber: '•••• 3094',
-    cardHolder: 'ALEX RIVERA',
+    cardHolder: 'MAYA BANK',
     expiryDate: '11/29',
     balance: 5320.0,
-    backgroundColor: '#1E293B',
-    secondaryColor: '#334155',
+    backgroundColor: '#00D664',
+    secondaryColor: 'rgba(255, 255, 255, 0.15)',
     textColor: '#FFFFFF',
+    icon: 'account-balance-wallet',
   },
   {
     id: 'card-3',
-    bankName: 'Amex Platinum',
-    cardType: 'amex',
+    bankName: 'MariBank Wallet',
+    institution: 'MariBank',
+    accountName: 'MariBank Wallet',
+    cardType: 'mastercard',
+    cardNetwork: 'mastercard',
+    cardCategory: 'debit',
+    accountType: 'digital bank',
     cardNumber: '•••• 9152',
-    cardHolder: 'ALEX RIVERA',
+    cardHolder: 'MARIBANK',
     expiryDate: '04/27',
     balance: 8940.2,
-    backgroundColor: '#0F172A',
-    secondaryColor: '#1E293B',
+    backgroundColor: '#FF5722',
+    secondaryColor: 'rgba(255, 255, 255, 0.15)',
     textColor: '#FFFFFF',
+    icon: 'account-balance-wallet',
   },
 ];
 
@@ -138,8 +164,6 @@ function SingleStackedCard({
     const isThisCardFlipping = flippingCardIndex.value === index;
 
     if (isThisCardFlipping) {
-      // Exit animation: card lifts up and fades out.
-      // State update happens AFTER this completes — no overlapping animations.
       const progress = flipProgress.value;
 
       // Physical card arc: lifts up, passes over the stack, lands at the back
@@ -157,7 +181,6 @@ function SingleStackedCard({
         Extrapolation.CLAMP
       );
 
-      // Card goes behind the stack once it passes the peak
       const zIndex = progress < 0.5 ? 40 : 1;
 
       return {
@@ -187,23 +210,6 @@ function SingleStackedCard({
     };
   });
 
-  const animatedDepthOverlayStyle = useAnimatedStyle(() => {
-    if (totalCards <= 1) return { opacity: 0 };
-    const isThisCardFlipping = flippingCardIndex.value === index;
-    if (isThisCardFlipping) {
-      const overlayOpacity = interpolate(
-        flipProgress.value,
-        [0, 0.4, 1],
-        [0, 0.05, 0.26],
-        Extrapolation.CLAMP
-      );
-      return { opacity: overlayOpacity };
-    }
-    const overlayOpacity = Math.min(relPosition * 0.14, 0.28);
-    return { opacity: withSpring(overlayOpacity, SPRING_CONFIG) };
-  });
-
-  // Start the exit animation on the UI thread, then trigger state update on completion.
   const startFlipAnimation = () => {
     'worklet';
     if (isAnimating.value) return;
@@ -238,89 +244,88 @@ function SingleStackedCard({
     }
   });
 
+  const isMastercard =
+    card.cardNetwork === 'mastercard' || card.cardType === 'mastercard';
+  const categoryLabel =
+    card.cardCategory || (card.accountType === 'credit card' ? 'credit' : 'debit');
+  const institutionName =
+    card.institution || card.bankName || 'BANK';
+  const accountLabel =
+    card.accountName || card.bankName || 'Account';
+  const typeLabel =
+    card.accountType || (card.cardCategory === 'credit' ? 'credit card' : 'bank');
+
   return (
     <GestureDetector gesture={tapGesture}>
       <Animated.View
         style={[
           styles.cardContainer,
           {
-            backgroundColor: card.backgroundColor,
-            borderColor: 'rgba(255, 255, 255, 0.14)',
+            backgroundColor: card.backgroundColor || '#161B26',
+            borderColor: 'rgba(255, 255, 255, 0.15)',
           },
           animatedStyle,
         ]}
       >
         {/* Subtle Decorative Ambient Glow */}
-        <View
-          style={[
-            styles.decorativeOrb,
-            { backgroundColor: card.secondaryColor || '#252F48' },
-          ]}
-        />
+        <View style={styles.decorativeOrb} pointerEvents="none" />
 
-        {/* Dynamic Dark Depth Overlay for stacked hierarchy */}
-        <Animated.View
-          style={[styles.depthOverlay, animatedDepthOverlayStyle]}
-          pointerEvents="none"
-        />
-
-        {/* Card Header */}
+        {/* Card Header (Same as preview) */}
         <View style={styles.cardHeader}>
           <View style={styles.bankInfoRow}>
-            <View style={styles.chipIconContainer}>
-              <MaterialIcons name="credit-card" size={16} color="#B2C5FF" />
+            <View style={styles.bankIconContainer}>
+              <MaterialIcons
+                name={(card.icon as any) || 'account-balance'}
+                size={18}
+                color="#FFFFFF"
+              />
             </View>
-            <Text style={styles.bankNameText} numberOfLines={1}>
-              {card.bankName}
+            <Text style={styles.institutionText} numberOfLines={1}>
+              {institutionName.toUpperCase()}
             </Text>
           </View>
 
-          {/* Card Brand Badge */}
-          <View style={styles.cardBrandBadge}>
-            <Text style={styles.cardBrandText}>
-              {card.cardType.toUpperCase()}
+          {/* Card Network Brand Badge */}
+          <View style={styles.cardNetworkBadge}>
+            {isMastercard ? (
+              <View style={styles.mastercardCircles}>
+                <View style={styles.mastercardRed} />
+                <View style={styles.mastercardYellow} />
+              </View>
+            ) : (
+              <Text style={styles.visaBrandText}>VISA</Text>
+            )}
+            <Text style={styles.cardCategoryText}>
+              {categoryLabel.toUpperCase()}
             </Text>
           </View>
         </View>
 
-        {/* EMV Chip & Contactless Icons */}
-        <View style={styles.emvChipContainer}>
-          <View style={styles.emvChip}>
-            <View style={styles.emvChipLine1} />
-            <View style={styles.emvChipLine2} />
-          </View>
-          <MaterialIcons
-            name="contactless"
-            size={22}
-            color="rgba(255, 255, 255, 0.65)"
-            style={styles.contactlessIcon}
+        {/* Card Middle: Balance (Same as preview) */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceLabel}>CURRENT BALANCE</Text>
+          <AnimatedCounter
+            value={card.balance}
+            prefix={currencySymbol}
+            decimals={2}
+            className="text-2xl font-black text-white tracking-tight mt-0.5"
           />
         </View>
 
-        {/* Card Number & Balance */}
-        <View style={styles.cardMiddle}>
-          <Text style={styles.cardNumberText}>{card.cardNumber}</Text>
-          <View style={styles.balanceContainer}>
-            <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
-            <AnimatedCounter
-              value={card.balance}
-              prefix={currencySymbol}
-              decimals={2}
-              style={styles.balanceValue}
-            />
-          </View>
-        </View>
-
-        {/* Card Footer */}
+        {/* Card Footer: Account Name & Type (Same as preview) */}
         <View style={styles.cardFooter}>
-          <View>
-            <Text style={styles.footerLabel}>CARD HOLDER</Text>
-            <Text style={styles.footerValue}>{card.cardHolder}</Text>
+          <View style={styles.footerLeft}>
+            <Text style={styles.footerLabel}>ACCOUNT NAME</Text>
+            <Text style={styles.footerValue} numberOfLines={1}>
+              {accountLabel}
+            </Text>
           </View>
 
-          <View style={styles.expiryContainer}>
-            <Text style={styles.footerLabel}>EXPIRES</Text>
-            <Text style={styles.footerValue}>{card.expiryDate}</Text>
+          <View style={styles.footerRight}>
+            <Text style={styles.footerLabel}>TYPE</Text>
+            <Text style={styles.footerTypeValue}>
+              {typeLabel.toUpperCase()}
+            </Text>
           </View>
         </View>
       </Animated.View>
@@ -330,7 +335,7 @@ function SingleStackedCard({
 
 export function StackedCardCarousel({
   cards = DEFAULT_CARDS,
-  currencySymbol = '$',
+  currencySymbol = '₱',
   onCardPress,
   onCardChange,
 }: StackedCardCarouselProps) {
@@ -347,8 +352,6 @@ export function StackedCardCarousel({
     if (onCardChange && cards[nextIndex]) {
       onCardChange(cards[nextIndex], nextIndex);
     }
-    // Wait for React to re-render with the new positions,
-    // then release the card from the flip branch.
     requestAnimationFrame(() => {
       flippingCardIndex.value = -1;
       flipProgress.value = 0;
@@ -446,7 +449,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 20,
     borderWidth: 1,
     overflow: 'hidden',
@@ -463,137 +466,129 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  depthOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
-    borderRadius: 24,
-    zIndex: 1,
-  },
   decorativeOrb: {
     position: 'absolute',
-    top: -40,
-    right: -40,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    opacity: 0.4,
+    top: -48,
+    right: -48,
+    width: 144,
+    height: 144,
+    borderRadius: 72,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 2,
   },
   bankInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     flex: 1,
     marginRight: 8,
   },
-  chipIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(178, 197, 255, 0.18)',
+  bankIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
   },
-  bankNameText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-  cardBrandBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-  },
-  cardBrandText: {
-    fontSize: 10,
+  institutionText: {
+    fontSize: 14,
     fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
+  },
+  cardNetworkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.40)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  mastercardCircles: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: -2,
+  },
+  mastercardRed: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#EB001B',
+    marginRight: -6,
+  },
+  mastercardYellow: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#F79E1B',
+  },
+  visaBrandText: {
+    fontSize: 11,
+    fontWeight: '900',
     color: '#B2C5FF',
     letterSpacing: 1,
   },
-  emvChipContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardCategoryText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.90)',
+    textTransform: 'uppercase',
+  },
+  balanceSection: {
     marginVertical: 4,
-  },
-  emvChip: {
-    width: 34,
-    height: 26,
-    borderRadius: 6,
-    backgroundColor: '#D1A350',
-    borderWidth: 1,
-    borderColor: '#9E7428',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  emvChipLine1: {
-    height: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    marginVertical: 3,
-  },
-  emvChipLine2: {
-    height: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    marginVertical: 2,
-  },
-  contactlessIcon: {
-    marginLeft: 10,
-  },
-  cardMiddle: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  cardNumberText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    letterSpacing: 2,
-  },
-  balanceContainer: {
-    alignItems: 'flex-end',
+    zIndex: 2,
   },
   balanceLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.55)',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  balanceValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
+    color: 'rgba(255, 255, 255, 0.70)',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+    zIndex: 2,
+  },
+  footerLeft: {
+    flex: 1,
+    marginRight: 8,
+  },
+  footerRight: {
+    alignItems: 'flex-end',
   },
   footerLabel: {
     fontSize: 8,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.55)',
+    color: 'rgba(255, 255, 255, 0.60)',
     letterSpacing: 0.8,
+    textTransform: 'uppercase',
     marginBottom: 2,
   },
   footerValue: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  expiryContainer: {
-    alignItems: 'flex-end',
+  footerTypeValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.90)',
+    textTransform: 'uppercase',
   },
   controlsRow: {
     width: CARD_WIDTH,
