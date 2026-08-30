@@ -31,7 +31,7 @@ export function DueSoonBadge({ label, isOverdue = false }: DueSoonBadgeProps) {
 
     pulseScale.value = withRepeat(
       withSequence(
-        withTiming(1.4, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.35, { duration: 900, easing: Easing.inOut(Easing.ease) }),
         withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
@@ -45,8 +45,8 @@ export function DueSoonBadge({ label, isOverdue = false }: DueSoonBadgeProps) {
   }));
 
   const mainColor = isOverdue ? '#FF897D' : '#FBBF24'; // Red for overdue, yellowish-amber for due soon
-  const bgColor = isOverdue ? 'rgba(255, 137, 125, 0.14)' : 'rgba(251, 191, 36, 0.14)';
-  const borderColor = isOverdue ? 'rgba(255, 137, 125, 0.35)' : 'rgba(251, 191, 36, 0.35)';
+  const bgColor = isOverdue ? 'rgba(255, 137, 125, 0.12)' : 'rgba(251, 191, 36, 0.12)';
+  const borderColor = isOverdue ? 'rgba(255, 137, 125, 0.30)' : 'rgba(251, 191, 36, 0.30)';
 
   return (
     <View
@@ -54,10 +54,10 @@ export function DueSoonBadge({ label, isOverdue = false }: DueSoonBadgeProps) {
         backgroundColor: bgColor,
         borderColor: borderColor,
       }}
-      className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full border"
+      className="flex-row items-center gap-1 px-1.5 py-0.5 rounded-full border self-start"
     >
       {/* Pulsing Dot */}
-      <View className="relative items-center justify-center w-2 h-2">
+      <View className="relative items-center justify-center w-1.5 h-1.5">
         <Animated.View
           style={[
             animatedDotStyle,
@@ -65,23 +65,23 @@ export function DueSoonBadge({ label, isOverdue = false }: DueSoonBadgeProps) {
               backgroundColor: mainColor,
             },
           ]}
-          className="absolute w-2 h-2 rounded-full"
+          className="absolute w-1.5 h-1.5 rounded-full"
         />
         <View
           style={{ backgroundColor: mainColor }}
-          className="w-1.5 h-1.5 rounded-full"
+          className="w-1 h-1 rounded-full"
         />
       </View>
 
       <MaterialIcons
         name={isOverdue ? 'error-outline' : 'schedule'}
-        size={13}
+        size={10}
         color={mainColor}
       />
 
       <Text
         style={{ color: mainColor }}
-        className="text-[11px] font-extrabold tracking-tight"
+        className="text-[9.5px] font-bold tracking-tight"
       >
         {label}
       </Text>

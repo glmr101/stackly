@@ -37,7 +37,9 @@ export default function Home() {
   const currentYear = now.getFullYear();
   const monthName = now.toLocaleDateString("en-US", { month: "long" });
 
-  const cardItems: CardItem[] = accounts.map((acc, index) => {
+  const displayedAccounts = accounts.slice(0, 3);
+
+  const cardItems: CardItem[] = displayedAccounts.map((acc, index) => {
     const phBank = findPhilippineBank(acc.bankCode || acc.institution || acc.name);
     const bankColor = phBank?.color || "#161B26";
     const institution = acc.institution || phBank?.shortName || acc.name;
@@ -119,9 +121,13 @@ export default function Home() {
     opacity: pulseOpacity.value,
   }));
 
-  // Upcoming bills derived from active subscriptions
+  // Upcoming bills derived from active subscriptions due within 7 days
   const upcomingBills = subscriptions
-    .filter((sub) => sub.active)
+    .filter((sub) => {
+      if (!sub.active) return false;
+      const dueStatus = getDueStatus(sub.nextChargeDate);
+      return dueStatus.daysRemaining <= 7;
+    })
     .sort(
       (a, b) =>
         new Date(a.nextChargeDate).getTime() -
@@ -129,7 +135,6 @@ export default function Home() {
     )
     .slice(0, 3)
     .map((sub) => {
-      const chargeDate = new Date(sub.nextChargeDate);
       const dueStatus = getDueStatus(sub.nextChargeDate);
       return {
         id: sub.id,
@@ -275,7 +280,7 @@ export default function Home() {
         {/* Quick Action Buttons */}
         <AnimatedBox
           delay={60}
-          className="mx-5 mb-7 flex-row items-center justify-between gap-3"
+          className="mx-5 mb-6 flex-row items-center justify-between gap-3"
         >
           <Link
             href={{ pathname: "/add-transaction", params: { type: "income" } } as any}
@@ -347,7 +352,7 @@ export default function Home() {
         </AnimatedBox>
 
         {/* Accounts Stacked Cards Carousel */}
-        <AnimatedBox delay={80} className="mb-7">
+        <AnimatedBox delay={80} className="mb-6">
           <View className="px-5 mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">
@@ -359,14 +364,17 @@ export default function Home() {
                 </Text>
               </View>
             </View>
-            <Link href={"/add-account" as any} asChild>
-              <ScaleButton activeScale={0.92} hitSlop={8} className="flex-row items-center gap-1">
-                <MaterialIcons name="add" size={16} color="#B2C5FF" />
-                <Text className="text-xs font-semibold text-primary">
-                  Add
-                </Text>
-              </ScaleButton>
-            </Link>
+            <View className="flex-row items-center gap-2">
+              {accounts.length > 3 && (
+                <Link href={"/accounts" as any} asChild>
+                  <ScaleButton activeScale={0.92} hitSlop={8} className="mr-1">
+                    <Text className="text-xs font-semibold text-primary">
+                      View all
+                    </Text>
+                  </ScaleButton>
+                </Link>
+              )}
+            </View>
           </View>
 
           {cardItems.length > 0 ? (
@@ -374,7 +382,6 @@ export default function Home() {
               <StackedCardCarousel
                 cards={cardItems}
                 currencySymbol={currencySymbol}
-                onCardPress={() => router.push("/accounts")}
               />
             </View>
           ) : (
@@ -407,7 +414,7 @@ export default function Home() {
         </AnimatedBox>
 
         {/* Upcoming Bills */}
-        <AnimatedBox delay={110} className="mb-7 px-5">
+        <AnimatedBox delay={110} className="mb-6 px-5">
           <View className="flex-row items-center justify-between mb-3.5">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">
@@ -437,9 +444,9 @@ export default function Home() {
                   key={bill.id}
                   className="flex-row items-center justify-between py-1"
                 >
-                  <View className="flex-row items-center gap-3">
+                  <View className="flex-row items-center gap-3 flex-1 min-w-0 mr-3">
                     <View
-                      className="w-10 h-10 rounded-2xl items-center justify-center shadow-sm"
+                      className="w-10 h-10 rounded-2xl items-center justify-center shadow-sm flex-shrink-0"
                       style={{ backgroundColor: `${bill.color}20` }}
                     >
                       <MaterialIcons
@@ -448,9 +455,12 @@ export default function Home() {
                         color={bill.color}
                       />
                     </View>
-                    <View className="flex-1 mr-2">
+                    <View className="flex-1 min-w-0">
                       <View className="flex-row items-center gap-2">
-                        <Text className="text-sm font-semibold text-on-surface" numberOfLines={1}>
+                        <Text
+                          className="text-sm font-semibold text-on-surface flex-shrink"
+                          numberOfLines={1}
+                        >
                           {bill.name}
                         </Text>
                         {bill.isDueSoon && (
@@ -463,18 +473,19 @@ export default function Home() {
                       <Text
                         className={`text-xs font-medium ${bill.isOverdue ? "text-error font-bold" : "text-on-surface-variant"
                           }`}
+                        numberOfLines={1}
                       >
                         {bill.scheduleLabel} • {bill.isOverdue ? "Overdue" : `Due ${bill.dueDate}`}
                       </Text>
                     </View>
                   </View>
 
-                  <View className="items-end">
+                  <View className="items-end flex-shrink-0 pl-1">
                     <AnimatedCounter
                       value={bill.amount}
                       prefix={`-${currencySymbol}`}
                       decimals={2}
-                      className="text-sm font-bold text-on-surface"
+                      className="text-sm font-bold text-on-surface text-right"
                     />
                   </View>
                 </View>
@@ -487,7 +498,7 @@ export default function Home() {
                 No Upcoming Bills
               </Text>
               <Text className="text-[11px] text-on-surface-variant text-center mt-0.5 mb-3">
-                All subscriptions are settled or none are scheduled.
+                No bills due in the next 7 days.
               </Text>
               <Link href={"/add-subscription" as any} asChild>
                 <ScaleButton

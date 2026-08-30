@@ -115,10 +115,13 @@ const DEFAULT_CARDS: CardItem[] = [
   },
 ];
 
+const FLIP_DURATION = 800;
+const FLIP_EASING = Easing.bezier(0.25, 0.1, 0.25, 1);
+
 const SPRING_CONFIG = {
-  damping: 16,
-  stiffness: 130,
-  mass: 0.7,
+  damping: 18,
+  stiffness: 200,
+  mass: 0.8,
 };
 
 interface SingleStackedCardProps {
@@ -170,7 +173,7 @@ function SingleStackedCard({
       const translateY = interpolate(
         progress,
         [0, 0.4, 1],
-        [0, -160, STACK_OFFSET_Y * (totalCards - 1)],
+        [0, -200, STACK_OFFSET_Y * (totalCards - 1)],
         Extrapolation.CLAMP
       );
 
@@ -181,7 +184,7 @@ function SingleStackedCard({
         Extrapolation.CLAMP
       );
 
-      const zIndex = progress < 0.5 ? 40 : 1;
+      const zIndex = progress < 0.5 ? 50 : 0;
 
       return {
         transform: [
@@ -194,10 +197,10 @@ function SingleStackedCard({
       };
     }
 
-    // Default stacked positions (relPosition: 0=front, 1=middle, 2=back)
+    // Default stacked positions (relPosition: 0=front, 1=middle, 2=back, 3=bottom)
     const baseTranslateY = relPosition * STACK_OFFSET_Y;
     const baseScale = 1 - relPosition * SCALE_DIFF;
-    const zIndex = 30 - relPosition * 10;
+    const zIndex = 40 - relPosition * 10;
 
     return {
       transform: [
@@ -219,8 +222,8 @@ function SingleStackedCard({
     flipProgress.value = withTiming(
       1,
       {
-        duration: 500,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
+        duration: FLIP_DURATION,
+        easing: FLIP_EASING,
       },
       (finished) => {
         if (finished) {
@@ -353,6 +356,7 @@ export function StackedCardCarousel({
   onCardPress,
   onCardChange,
 }: StackedCardCarouselProps) {
+  const displayCards = (cards || DEFAULT_CARDS).slice(0, 3);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const flippingCardIndex = useSharedValue(-1);
@@ -360,11 +364,11 @@ export function StackedCardCarousel({
   const isAnimating = useSharedValue(false);
 
   const handleFlipNext = () => {
-    if (cards.length <= 1) return;
-    const nextIndex = (activeIndex + 1) % cards.length;
+    if (displayCards.length <= 1) return;
+    const nextIndex = (activeIndex + 1) % displayCards.length;
     setActiveIndex(nextIndex);
-    if (onCardChange && cards[nextIndex]) {
-      onCardChange(cards[nextIndex], nextIndex);
+    if (onCardChange && displayCards[nextIndex]) {
+      onCardChange(displayCards[nextIndex], nextIndex);
     }
     requestAnimationFrame(() => {
       flippingCardIndex.value = -1;
@@ -381,8 +385,8 @@ export function StackedCardCarousel({
     flipProgress.value = withTiming(
       1,
       {
-        duration: 500,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
+        duration: FLIP_DURATION,
+        easing: FLIP_EASING,
       },
       (finished) => {
         if (finished) {
@@ -396,12 +400,12 @@ export function StackedCardCarousel({
     <View style={styles.wrapper}>
       {/* Cards Stack Container */}
       <View style={styles.stackContainer}>
-        {cards.map((card, index) => (
+        {displayCards.map((card, index) => (
           <SingleStackedCard
             key={card.id}
             card={card}
             index={index}
-            totalCards={cards.length}
+            totalCards={displayCards.length}
             activeIndex={activeIndex}
             flippingCardIndex={flippingCardIndex}
             flipProgress={flipProgress}
@@ -414,11 +418,10 @@ export function StackedCardCarousel({
         ))}
       </View>
 
-      {/* Interactive Controls & Flip Next Button */}
+      {/* Interactive Controls & Centered Pagination Dots */}
       <View style={styles.controlsRow}>
-        {/* Pagination Dots */}
         <View style={styles.paginationRow}>
-          {cards.map((card, index) => {
+          {displayCards.map((card, index) => {
             const isSelected = activeIndex === index;
             return (
               <View
@@ -433,13 +436,6 @@ export function StackedCardCarousel({
             );
           })}
         </View>
-
-        {/* Quick Flip Button */}
-        {cards.length > 1 && (
-          <View style={styles.flipActionRow}>
-            <Text style={styles.flipHintText}>Tap to flip</Text>
-          </View>
-        )}
       </View>
     </View>
   );
@@ -450,11 +446,11 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 4,
+    marginVertical: 2,
   },
   stackContainer: {
     width: CARD_WIDTH,
-    height: CARD_HEIGHT + STACK_OFFSET_Y * 2 + 8,
+    height: CARD_HEIGHT + STACK_OFFSET_Y * 2 + 6,
     alignItems: 'center',
     justifyContent: 'flex-start',
     position: 'relative',
@@ -608,8 +604,8 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    justifyContent: 'center',
+    marginTop: 10,
     paddingHorizontal: 4,
   },
   paginationRow: {
@@ -628,16 +624,6 @@ const styles = StyleSheet.create({
   paginationDotInactive: {
     width: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
-  },
-  flipActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  flipHintText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(178, 197, 255, 0.8)',
   },
 });
 
