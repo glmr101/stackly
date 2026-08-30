@@ -3,10 +3,15 @@ import { Account, Transaction, Subscription, Category, BudgetGoal, SavingsGoal }
 export const MOCK_CATEGORIES: Category[] = [
   { id: 'c1', name: 'Income', type: 'income', icon: 'payments', color: '#4de082' },
   { id: 'c2', name: 'House Rent & Utilities', type: 'expense', icon: 'home', color: '#ffb4ab' },
-  { id: 'c4', name: 'Entertainment', type: 'expense', icon: 'movie', color: '#ffb4ab' },
-  { id: 'c5', name: 'Music', type: 'expense', icon: 'music-note', color: '#ffb4ab' },
-  { id: 'c6', name: 'Software', type: 'expense', icon: 'design-services', color: '#ffb4ab' },
-  { id: 'c7', name: 'Fitness', type: 'expense', icon: 'fitness-center', color: '#ffb4ab' },
+  { id: 'c3', name: 'Food & Dining', type: 'expense', icon: 'restaurant', color: '#fbbf24' },
+  { id: 'c8', name: 'Groceries', type: 'expense', icon: 'shopping-cart', color: '#34d399' },
+  { id: 'c9', name: 'Shopping', type: 'expense', icon: 'shopping-bag', color: '#f472b6' },
+  { id: 'c10', name: 'Transportation', type: 'expense', icon: 'directions-car', color: '#60a5fa' },
+  { id: 'c4', name: 'Entertainment', type: 'expense', icon: 'movie', color: '#c084fc' },
+  { id: 'c5', name: 'Music', type: 'expense', icon: 'music-note', color: '#a78bfa' },
+  { id: 'c6', name: 'Software', type: 'expense', icon: 'design-services', color: '#38bdf8' },
+  { id: 'c7', name: 'Fitness', type: 'expense', icon: 'fitness-center', color: '#4de082' },
+  { id: 'c11', name: 'Healthcare', type: 'expense', icon: 'local-hospital', color: '#f87171' },
 ];
 
 export const MOCK_ACCOUNTS: Account[] = [

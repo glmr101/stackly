@@ -18,7 +18,7 @@ export default function Transactions() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<
-    "all" | "income" | "expense" | "transfer" | "unreviewed"
+    "all" | "income" | "expense" | "transfer" | "savings" | "unreviewed"
   >("all");
 
   const filteredTransactions = transactions.filter((tx) => {
@@ -27,6 +27,7 @@ export default function Transactions() {
     if (filterType === "income" && tx.type !== "income") return false;
     if (filterType === "expense" && tx.type !== "expense") return false;
     if (filterType === "transfer" && tx.type !== "transfer") return false;
+    if (filterType === "savings" && tx.type !== "savings") return false;
 
     // Filter by search
     if (searchQuery.trim()) {
@@ -43,7 +44,7 @@ export default function Transactions() {
 
   const totalFilteredAmount = filteredTransactions.reduce((sum, tx) => {
     if (tx.type === "income") return sum + tx.amount;
-    if (tx.type === "expense") return sum - tx.amount;
+    if (tx.type === "expense" || tx.type === "savings") return sum - tx.amount;
     return sum;
   }, 0);
 
@@ -51,6 +52,7 @@ export default function Transactions() {
     { label: "All", value: "all" as const },
     { label: "Income", value: "income" as const },
     { label: "Expense", value: "expense" as const },
+    { label: "Savings", value: "savings" as const },
     { label: "Transfer", value: "transfer" as const },
     { label: "Uncategorized", value: "unreviewed" as const },
   ];
@@ -172,12 +174,14 @@ export default function Transactions() {
             {filteredTransactions.map((tx) => {
               const isIncome = tx.type === "income";
               const isExpense = tx.type === "expense";
+              const isSavings = tx.type === "savings";
               const cat = categories.find((c) => c.id === tx.categoryId);
               const account = accounts.find((a) => a.id === tx.accountId);
 
               let iconBg = "bg-surface-container-high";
               let iconColor = "#C3C6D6";
               let amountClass = "text-on-surface";
+              let iconName: any = cat?.icon || "receipt";
 
               if (isIncome) {
                 iconBg = "bg-secondary/15";
@@ -187,6 +191,11 @@ export default function Transactions() {
                 iconBg = "bg-error/15";
                 iconColor = "#FFB4AB";
                 amountClass = "text-error";
+              } else if (isSavings) {
+                iconBg = "bg-primary/15";
+                iconColor = "#B2C5FF";
+                amountClass = "text-primary";
+                iconName = "savings";
               }
 
               const txDate = new Date(tx.date).toLocaleDateString("en-US", {
@@ -206,7 +215,7 @@ export default function Transactions() {
                       className={`w-12 h-12 rounded-2xl items-center justify-center ${iconBg}`}
                     >
                       <MaterialIcons
-                        name={(cat?.icon || "receipt") as any}
+                        name={iconName}
                         size={22}
                         color={iconColor}
                       />
@@ -220,7 +229,7 @@ export default function Transactions() {
                       </Text>
                       <View className="flex-row items-center gap-1.5 mt-0.5">
                         <Text className="text-xs text-on-surface-variant font-medium">
-                          {cat?.name || "Uncategorized"}
+                          {isSavings ? "Savings Goal" : cat?.name || "Uncategorized"}
                         </Text>
                         <View className="w-1 h-1 rounded-full bg-outline-variant" />
                         <Text className="text-xs text-on-surface-variant font-medium">

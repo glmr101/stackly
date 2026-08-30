@@ -41,23 +41,24 @@ export default function Home() {
     const phBank = findPhilippineBank(acc.bankCode || acc.institution || acc.name);
     const bankColor = phBank?.color || "#161B26";
     const institution = acc.institution || phBank?.shortName || acc.name;
-    const cardNetwork = acc.cardNetwork || (acc.type === "credit card" ? "visa" : "mastercard");
-    const cardCategory = acc.cardCategory || (acc.type === "credit card" ? "credit" : "debit");
+    const isCard = acc.type !== "cash" && acc.type !== "investment";
+    const cardNetwork = isCard ? (acc.cardNetwork || (acc.type === "credit card" ? "visa" : "mastercard")) : undefined;
+    const cardCategory = isCard ? (acc.cardCategory || (acc.type === "credit card" ? "credit" : "debit")) : undefined;
 
     return {
       id: acc.id,
       bankName: acc.name,
       institution: institution,
       accountName: acc.name,
-      cardType: cardNetwork,
+      cardType: (cardNetwork as any) || "generic",
       cardNetwork: cardNetwork,
       cardCategory: cardCategory,
       accountType: acc.type,
-      cardNumber: `•••• ${acc.id.replace(/\D/g, "").slice(-4) || "8421"}`,
+      cardNumber: isCard ? `•••• ${acc.id.replace(/\D/g, "").slice(-4) || "8421"}` : undefined,
       cardHolder: institution.toUpperCase(),
-      expiryDate: "12/28",
+      expiryDate: isCard ? "12/28" : undefined,
       balance: acc.balance,
-      backgroundColor: bankColor,
+      backgroundColor: acc.type === "cash" ? "#1E293B" : acc.type === "investment" ? "#0F3A2E" : bankColor,
       secondaryColor: "rgba(255, 255, 255, 0.15)",
       textColor: "#FFFFFF",
       icon: acc.icon,

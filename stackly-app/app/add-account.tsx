@@ -109,21 +109,51 @@ export default function AddAccount() {
     }
   };
 
+  const handleTypeChange = (newType: AccountType) => {
+    setType(newType);
+    if (newType === "cash") {
+      if (name.includes("Account") || name.includes("Credit Card")) {
+        setName("Cash Wallet");
+      }
+      setCustomInstitution("Cash");
+    } else if (newType === "investment") {
+      if (name.includes("Account") || name.includes("Credit Card") || name.includes("Cash")) {
+        setName("Investment Portfolio");
+      }
+    } else if (newType === "credit card") {
+      setCardCategory("credit");
+      if (name.includes("Account")) {
+        setName(name.replace("Account", "Credit Card"));
+      }
+    } else {
+      setCardCategory("debit");
+      if (name.includes("Credit Card")) {
+        setName(name.replace("Credit Card", "Account"));
+      }
+    }
+  };
+
   const currentInstitution =
-    selectedBank.id === "other"
-      ? customInstitution.trim() || "Custom Bank"
-      : selectedBank.shortName;
+    type === "cash"
+      ? customInstitution.trim() || "Cash"
+      : selectedBank.id === "other"
+        ? customInstitution.trim() || "Custom Bank"
+        : selectedBank.shortName;
 
   const handleSave = () => {
     const parsedBalance = parseFloat(balance || "0");
     const institutionName =
-      selectedBank.id === "other"
-        ? customInstitution.trim() || "Custom Bank"
-        : selectedBank.shortName;
+      type === "cash"
+        ? customInstitution.trim() || "Cash"
+        : selectedBank.id === "other"
+          ? customInstitution.trim() || "Custom Bank"
+          : selectedBank.shortName;
 
     if (!name.trim() || !institutionName) {
       return;
     }
+
+    const isCardEligible = type !== "cash" && type !== "investment";
 
     addAccount({
       name: name.trim(),
@@ -131,9 +161,9 @@ export default function AddAccount() {
       balance: isNaN(parsedBalance) ? 0 : parsedBalance,
       type,
       icon: getIconForType(type),
-      cardCategory,
-      cardNetwork,
-      bankCode: selectedBank.code,
+      cardCategory: isCardEligible ? cardCategory : undefined,
+      cardNetwork: isCardEligible ? cardNetwork : undefined,
+      bankCode: isCardEligible ? selectedBank.code : undefined,
     });
 
     router.back();
@@ -146,6 +176,7 @@ export default function AddAccount() {
       <GrabHandle />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
         className="flex-1"
       >
         {/* Header */}
@@ -165,7 +196,7 @@ export default function AddAccount() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={{ paddingBottom: 50 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -175,7 +206,13 @@ export default function AddAccount() {
               className="p-5 rounded-[26px] border border-white/15 shadow-xl relative overflow-hidden"
               style={{
                 backgroundColor:
-                  selectedBank.id === "other" ? "#161B26" : selectedBank.color,
+                  type === "cash"
+                    ? "#1E293B"
+                    : type === "investment"
+                      ? "#0F3A2E"
+                      : selectedBank.id === "other"
+                        ? "#161B26"
+                        : selectedBank.color,
               }}
             >
               {/* Decorative Ambient Orb */}
@@ -185,7 +222,7 @@ export default function AddAccount() {
               <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center gap-2">
                   <View className="w-8 h-8 rounded-xl bg-white/20 items-center justify-center">
-                    <MaterialIcons name="account-balance" size={18} color="#FFFFFF" />
+                    <MaterialIcons name={getIconForType(type)} size={18} color="#FFFFFF" />
                   </View>
                   <Text
                     className="text-sm font-extrabold text-white tracking-wide"
@@ -195,22 +232,30 @@ export default function AddAccount() {
                   </Text>
                 </View>
 
-                {/* Card Network Brand Badge */}
-                <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10">
-                  {cardNetwork === "mastercard" ? (
-                    <View className="flex-row items-center">
-                      <View className="w-3.5 h-3.5 rounded-full bg-[#EB001B] -mr-1.5" />
-                      <View className="w-3.5 h-3.5 rounded-full bg-[#F79E1B]" />
-                    </View>
-                  ) : (
-                    <Text className="text-[11px] font-black text-[#B2C5FF] tracking-wider">
-                      VISA
+                {/* Card Network Brand Badge or Account Type Badge */}
+                {type !== "cash" && type !== "investment" ? (
+                  <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10">
+                    {cardNetwork === "mastercard" ? (
+                      <View className="flex-row items-center">
+                        <View className="w-3.5 h-3.5 rounded-full bg-[#EB001B] -mr-1.5" />
+                        <View className="w-3.5 h-3.5 rounded-full bg-[#F79E1B]" />
+                      </View>
+                    ) : (
+                      <Text className="text-[11px] font-black text-[#B2C5FF] tracking-wider">
+                        VISA
+                      </Text>
+                    )}
+                    <Text className="text-[9px] font-extrabold text-white/90 uppercase ml-1">
+                      {cardCategory}
                     </Text>
-                  )}
-                  <Text className="text-[9px] font-extrabold text-white/90 uppercase ml-1">
-                    {cardCategory}
-                  </Text>
-                </View>
+                  </View>
+                ) : (
+                  <View className="px-2.5 py-1 rounded-lg bg-black/40 border border-white/10">
+                    <Text className="text-[9px] font-extrabold text-white/90 uppercase">
+                      {type}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Card Number & Balance */}
@@ -342,79 +387,83 @@ export default function AddAccount() {
           </View>
 
           {/* Section: Card Category Toggle (Credit vs Debit) */}
-          <View className="px-5 mb-5">
-            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-              Card Type (Debit or Credit)
-            </Text>
+          {type !== "cash" && type !== "investment" && (
+            <View className="px-5 mb-5">
+              <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
+                Card Type (Debit or Credit)
+              </Text>
 
-            <SegmentedControl<CardCategory>
-              options={[
-                {
-                  value: "debit",
-                  label: "Debit Card",
-                  icon: (
-                    <MaterialIcons
-                      name="account-balance-wallet"
-                      size={18}
-                      color={cardCategory === "debit" ? "#002C72" : "#94A3B8"}
-                    />
-                  ),
-                },
-                {
-                  value: "credit",
-                  label: "Credit Card",
-                  icon: (
-                    <MaterialIcons
-                      name="credit-card"
-                      size={18}
-                      color={cardCategory === "credit" ? "#002C72" : "#94A3B8"}
-                    />
-                  ),
-                },
-              ]}
-              selectedValue={cardCategory}
-              onChange={handleCardCategoryChange}
-              activePillColor="#B2C5FF"
-              activeTextColor="#002C72"
-            />
-          </View>
+              <SegmentedControl<CardCategory>
+                options={[
+                  {
+                    value: "debit",
+                    label: "Debit Card",
+                    icon: (
+                      <MaterialIcons
+                        name="account-balance-wallet"
+                        size={18}
+                        color={cardCategory === "debit" ? "#002C72" : "#94A3B8"}
+                      />
+                    ),
+                  },
+                  {
+                    value: "credit",
+                    label: "Credit Card",
+                    icon: (
+                      <MaterialIcons
+                        name="credit-card"
+                        size={18}
+                        color={cardCategory === "credit" ? "#002C72" : "#94A3B8"}
+                      />
+                    ),
+                  },
+                ]}
+                selectedValue={cardCategory}
+                onChange={handleCardCategoryChange}
+                activePillColor="#B2C5FF"
+                activeTextColor="#002C72"
+              />
+            </View>
+          )}
 
           {/* Section: Card Network Toggle (Mastercard vs Visa) */}
-          <View className="px-5 mb-5">
-            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-              Card Network (Mastercard or Visa)
-            </Text>
+          {type !== "cash" && type !== "investment" && (
+            <View className="px-5 mb-5">
+              <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
+                Card Network (Mastercard or Visa)
+              </Text>
 
-            <SegmentedControl<CardNetwork>
-              options={[
-                {
-                  value: "visa",
-                  label: "Visa Card",
-                  icon: (
-                    <MaterialIcons
-                      name="credit-card"
-                      size={18}
-                      color={cardNetwork === "visa" ? "#002C72" : "#94A3B8"}
-                    />
-                  ),
-                },
-                {
-                  value: "mastercard",
-                  label: "Mastercard",
-                  icon: (
-                    <View className="flex-row items-center -mr-1">
-                      <View className="w-3 h-3 rounded-full bg-[#EB001B] -mr-1" />
-                      <View className="w-3 h-3 rounded-full bg-[#F79E1B]" />
-                    </View>
-                  ),
-                },
-              ]}
-              selectedValue={cardNetwork}
-              onChange={setCardNetwork}
-              activePillColor="#B2C5FF"
-              activeTextColor="#002C72"
-            />
-          </View>
+              <SegmentedControl<CardNetwork>
+                options={[
+                  {
+                    value: "visa",
+                    label: "Visa Card",
+                    icon: (
+                      <MaterialIcons
+                        name="credit-card"
+                        size={18}
+                        color={cardNetwork === "visa" ? "#002C72" : "#94A3B8"}
+                      />
+                    ),
+                  },
+                  {
+                    value: "mastercard",
+                    label: "Mastercard",
+                    icon: (
+                      <View className="flex-row items-center -mr-1">
+                        <View className="w-3 h-3 rounded-full bg-[#EB001B] -mr-1" />
+                        <View className="w-3 h-3 rounded-full bg-[#F79E1B]" />
+                      </View>
+                    ),
+                  },
+                ]}
+                selectedValue={cardNetwork}
+                onChange={setCardNetwork}
+                activePillColor="#B2C5FF"
+                activeTextColor="#002C72"
+              />
+            </View>
+          )}
 
           {/* Section: Account Name Input */}
           <View className="px-5 mb-5">
@@ -445,12 +494,11 @@ export default function AddAccount() {
                   <ScaleButton
                     key={accType.value}
                     activeScale={0.92}
-                    onPress={() => setType(accType.value)}
-                    className={`flex-row items-center gap-2 px-3.5 py-2.5 rounded-2xl border ${
-                      isSelected
+                    onPress={() => handleTypeChange(accType.value)}
+                    className={`flex-row items-center gap-2 px-3.5 py-2.5 rounded-2xl border ${isSelected
                         ? "bg-primary/20 border-primary"
                         : "bg-surface-container border-outline-variant/30"
-                    }`}
+                      }`}
                   >
                     <MaterialIcons
                       name={getIconForType(accType.value)}
@@ -458,9 +506,8 @@ export default function AddAccount() {
                       color={isSelected ? "#B2C5FF" : "#C3C6D6"}
                     />
                     <Text
-                      className={`text-xs font-bold ${
-                        isSelected ? "text-primary" : "text-on-surface-variant"
-                      }`}
+                      className={`text-xs font-bold ${isSelected ? "text-primary" : "text-on-surface-variant"
+                        }`}
                     >
                       {accType.label}
                     </Text>
@@ -471,7 +518,7 @@ export default function AddAccount() {
           </View>
 
           {/* Save Action */}
-          <View className="px-5">
+          <View className="px-5 mb-8">
             <ScaleButton
               activeScale={0.95}
               className="w-full bg-primary py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg"

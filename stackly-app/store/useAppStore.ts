@@ -26,9 +26,17 @@ interface AppState {
   clearLastDeletedSubscription: () => void;
   toggleSubscription: (id: string) => void;
 
+  addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;
+  deleteCategory: (id: string) => void;
+
   setBudgetGoal: (goal: Omit<BudgetGoal, 'id'> | BudgetGoal) => void;
+  deleteBudgetGoal: (idOrCategoryId: string) => void;
   addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
+  updateSavingsGoal: (id: string, updates: Partial<Omit<SavingsGoal, 'id'>>) => void;
+  deleteSavingsGoal: (id: string) => void;
   addSavingsContribution: (id: string, amount: number) => void;
+  contributeToSavingsGoal: (goalId: string, accountId: string, amount: number) => boolean;
 
   setCurrency: (currency: Currency) => void;
   setRegion: (region: Region) => void;
@@ -153,6 +161,27 @@ export const useAppStore = create<AppState>()(
           ),
         })),
 
+      addCategory: (category) =>
+        set((state) => ({
+          categories: [
+            ...state.categories,
+            { ...category, id: `c${Date.now()}` },
+          ],
+        })),
+
+      updateCategory: (id, updates) =>
+        set((state) => ({
+          categories: state.categories.map((cat) =>
+            cat.id === id ? { ...cat, ...updates } : cat
+          ),
+        })),
+
+      deleteCategory: (id) =>
+        set((state) => ({
+          categories: state.categories.filter((cat) => cat.id !== id),
+          budgetGoals: state.budgetGoals.filter((bg) => bg.categoryId !== id),
+        })),
+
       setBudgetGoal: (goal) => 
         set((state) => {
           const exists = state.budgetGoals.find(bg => bg.categoryId === goal.categoryId);
@@ -168,17 +197,74 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
+      deleteBudgetGoal: (idOrCategoryId) =>
+        set((state) => ({
+          budgetGoals: state.budgetGoals.filter(
+            (bg) => bg.id !== idOrCategoryId && bg.categoryId !== idOrCategoryId
+          ),
+        })),
+
       addSavingsGoal: (goal) =>
         set((state) => ({
-          savingsGoals: [...state.savingsGoals, { ...goal, id: `sg${Date.now()}` }]
+          savingsGoals: [...state.savingsGoals, { ...goal, id: `sg${Date.now()}` }],
+        })),
+
+      updateSavingsGoal: (id, updates) =>
+        set((state) => ({
+          savingsGoals: state.savingsGoals.map((sg) =>
+            sg.id === id ? { ...sg, ...updates } : sg
+          ),
+        })),
+
+      deleteSavingsGoal: (id) =>
+        set((state) => ({
+          savingsGoals: state.savingsGoals.filter((sg) => sg.id !== id),
         })),
 
       addSavingsContribution: (id, amount) =>
         set((state) => ({
-          savingsGoals: state.savingsGoals.map(sg =>
+          savingsGoals: state.savingsGoals.map((sg) =>
             sg.id === id ? { ...sg, currentAmount: sg.currentAmount + amount } : sg
-          )
+          ),
         })),
+
+      contributeToSavingsGoal: (goalId, accountId, amount) => {
+        let success = false;
+        set((state) => {
+          const goal = state.savingsGoals.find((g) => g.id === goalId);
+          const account = state.accounts.find((a) => a.id === accountId);
+          if (!goal || !account || amount <= 0 || account.balance < amount) {
+            return state;
+          }
+
+          success = true;
+          const updatedAccounts = state.accounts.map((acc) =>
+            acc.id === accountId ? { ...acc, balance: acc.balance - amount } : acc
+          );
+
+          const updatedSavingsGoals = state.savingsGoals.map((sg) =>
+            sg.id === goalId ? { ...sg, currentAmount: sg.currentAmount + amount } : sg
+          );
+
+          const newTransaction: Transaction = {
+            id: `t${Date.now()}`,
+            type: 'savings',
+            amount: amount,
+            payee: `Contributed to ${goal.name}`,
+            date: new Date().toISOString(),
+            accountId: accountId,
+            savingsGoalId: goalId,
+            note: `Savings Goal: ${goal.name}`,
+          };
+
+          return {
+            accounts: updatedAccounts,
+            savingsGoals: updatedSavingsGoals,
+            transactions: [newTransaction, ...state.transactions],
+          };
+        });
+        return success;
+      },
 
       setCurrency: (currency) => set({ currency }),
       setRegion: (region) => set({ region, currency: region.defaultCurrency }),

@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Budgets',
+          title: 'Budget & Savings',
         }}
       />
     </Tabs>

@@ -14,6 +14,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { GrabHandle } from "@/components/ui/GrabHandle";
+import { CreateCategoryModal } from "@/components/ui/CreateCategoryModal";
 import {
   BillingCycle,
   WEEKDAYS,
@@ -41,6 +42,7 @@ export default function AddSubscription() {
   const [dueDay, setDueDay] = useState(6); // Default 6th of the month
   const [dueMonth, setDueMonth] = useState(new Date().getMonth()); // For yearly
   const [selectedColor, setSelectedColor] = useState("#B2C5FF");
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
 
   const colors = [
     "#B2C5FF",
@@ -107,6 +109,7 @@ export default function AddSubscription() {
       <GrabHandle />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
         className="flex-1"
       >
         {/* Header */}
@@ -126,7 +129,7 @@ export default function AddSubscription() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={{ paddingBottom: 50 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -193,8 +196,8 @@ export default function AddSubscription() {
                 {billingCycle === "weekly"
                   ? "Day of the Week"
                   : billingCycle === "yearly"
-                  ? "Annual Due Date"
-                  : "Due Date of the Month"}
+                    ? "Annual Due Date"
+                    : "Due Date of the Month"}
               </Text>
             </View>
 
@@ -362,6 +365,22 @@ export default function AddSubscription() {
                     </TouchableOpacity>
                   );
                 })}
+
+              {/* + New Category Chip */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowCreateCategory(true)}
+                className="px-4 py-2.5 rounded-2xl border border-dashed flex-row items-center gap-2"
+                style={{
+                  backgroundColor: '#1E2330',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                <MaterialIcons name="add" size={16} color="#8D909F" />
+                <Text className="text-xs font-bold" style={{ color: '#8D909F' }}>
+                  New
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -394,7 +413,7 @@ export default function AddSubscription() {
           </View>
 
           {/* Save Action */}
-          <View className="px-5">
+          <View className="px-5 mb-8">
             <ScaleButton
               activeScale={0.95}
               className="w-full bg-primary py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg"
@@ -408,6 +427,13 @@ export default function AddSubscription() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CreateCategoryModal
+        visible={showCreateCategory}
+        onClose={() => setShowCreateCategory(false)}
+        defaultType="expense"
+        onCreated={(cat) => setSelectedCategoryId(cat.id)}
+      />
     </View>
   );
 }

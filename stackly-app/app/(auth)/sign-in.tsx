@@ -195,7 +195,7 @@ export default function SignIn() {
         {/* Footer Link */}
         <View className="mt-8 flex-row items-center justify-center gap-2">
           <Text className="text-xs font-medium text-on-surface-variant">
-            Don't have an account?
+            Don&apos;t have an account?
           </Text>
           <Link href="/(auth)/sign-up" asChild>
             <ScaleButton activeScale={0.92} hitSlop={10}>

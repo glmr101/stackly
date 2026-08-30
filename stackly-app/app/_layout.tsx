@@ -95,6 +95,33 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="set-budget"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="add-savings-goal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="contribute-savings"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
           name="settings"
           options={{
             presentation: "modal",

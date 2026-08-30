@@ -6,7 +6,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Link } from 'expo-router';
 import { MaterialIconName } from '@/types';
 import { ScaleButton } from './ScaleButton';
-import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -17,6 +17,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     fabHref = '/add-account';
   } else if (currentRouteName === 'subscriptions') {
     fabHref = '/add-subscription';
+  } else if (currentRouteName === 'budgets') {
+    fabHref = '/set-budget';
   }
 
   return (

@@ -1,24 +1,55 @@
 import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PieChart } from "react-native-gifted-charts";
 import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
-import { AnimatedProgressBar } from "@/components/ui/AnimatedProgressBar";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
+import { ScaleButton } from "@/components/ui/ScaleButton";
+
+function formatRemainingTime(targetDateStr?: string): string | null {
+  if (!targetDateStr) return null;
+  const target = new Date(targetDateStr);
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "Past due";
+  if (diffDays === 0) return "Due today";
+  if (diffDays === 1) return "1 day left";
+  if (diffDays < 30) return `${diffDays} days left`;
+
+  const diffMonths = Math.round(diffDays / 30.4375);
+  if (diffMonths < 12) {
+    return `${diffMonths} ${diffMonths === 1 ? "mo" : "mos"} left`;
+  }
+
+  const diffYears = (diffDays / 365.25).toFixed(1);
+  return `${diffYears.endsWith(".0") ? diffYears.slice(0, -2) : diffYears} ${
+    diffYears === "1.0" ? "yr" : "yrs"
+  } left`;
+}
 
 export default function Budgets() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const categories = useAppStore((state) => state.categories);
   const budgetGoals = useAppStore((state) => state.budgetGoals);
+  const savingsGoals = useAppStore((state) => state.savingsGoals);
   const transactions = useAppStore((state) => state.transactions);
+  const currency = useAppStore((state) => state.currency);
+  const currencySymbol = currency?.symbol || "$";
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthName = now.toLocaleDateString("en-US", { month: "long" });
 
+  // Compute current month expenses per category
   const spentPerCategory: Record<string, number> = {};
-
   transactions.forEach((tx) => {
     if (tx.type === "expense" && tx.categoryId) {
       const txDate = new Date(tx.date);
@@ -32,209 +63,485 @@ export default function Budgets() {
     }
   });
 
-  const totalMonthlyLimit = budgetGoals.reduce(
-    (sum, g) => sum + g.monthlyLimit,
+  // Aggregated totals across all configured budget goals
+  const totalBudgetLimit = budgetGoals.reduce((sum, g) => sum + g.monthlyLimit, 0);
+  const totalBudgetSpent = budgetGoals.reduce(
+    (sum, g) => sum + (spentPerCategory[g.categoryId] || 0),
     0
   );
-  const totalMonthlySpent = budgetGoals.reduce((sum, g) => {
-    return sum + (spentPerCategory[g.categoryId] || 0);
-  }, 0);
-
-  const overallProgress =
-    totalMonthlyLimit > 0
-      ? Math.min((totalMonthlySpent / totalMonthlyLimit) * 100, 100)
-      : 0;
-
-  const totalRemaining = totalMonthlyLimit - totalMonthlySpent;
-  const isOverallOver = totalRemaining < 0;
+  const totalBudgetRemaining = Math.max(totalBudgetLimit - totalBudgetSpent, 0);
+  const isBudgetOver = totalBudgetSpent > totalBudgetLimit;
+  const budgetOverAmount = Math.max(totalBudgetSpent - totalBudgetLimit, 0);
+  const overallBudgetPercentage =
+    totalBudgetLimit > 0 ? (totalBudgetSpent / totalBudgetLimit) * 100 : 0;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      {/* Header */}
-      <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
-          Budgets & Limits
-        </Text>
+      {/* Top Header */}
+      <AnimatedBox
+        delay={0}
+        className="h-16 px-5 flex-row items-center justify-between z-50"
+      >
+        <View>
+          <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+            Budgets & Savings
+          </Text>
+          <Text className="text-xs text-on-surface-variant font-medium">
+            {monthName} {currentYear}
+          </Text>
+        </View>
       </AnimatedBox>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Overall Budget Hero Card */}
-        <AnimatedBox
-          delay={30}
-          className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
-        >
-          <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-secondary/10 blur-2xl pointer-events-none" />
+        {/* Monthly Budget Summary Hero Card */}
+        {budgetGoals.length > 0 && (
+          <AnimatedBox
+            delay={30}
+            className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
+          >
+            <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
 
-          <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-              Monthly Budget Spent
-            </Text>
-            <View
-              className={`px-2.5 py-0.5 rounded-full border ${
-                isOverallOver
-                  ? "bg-error/15 border-error/30"
-                  : "bg-secondary/15 border-secondary/30"
-              }`}
-            >
-              <Text
-                className={`text-[11px] font-bold ${
-                  isOverallOver ? "text-error" : "text-secondary"
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                {isBudgetOver ? "Budget Exceeded" : "Remaining Budget"}
+              </Text>
+              <View
+                className={`px-2.5 py-0.5 rounded-full border ${
+                  isBudgetOver
+                    ? "bg-error/15 border-error/30"
+                    : overallBudgetPercentage >= 80
+                    ? "bg-amber-400/15 border-amber-400/30"
+                    : "bg-secondary/15 border-secondary/30"
                 }`}
               >
-                {isOverallOver
-                  ? "Over Limit"
-                  : `${overallProgress.toFixed(0)}% Used`}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-baseline gap-2 my-1">
-            <AnimatedCounter
-              value={totalMonthlySpent}
-              prefix="$"
-              decimals={2}
-              className="text-4xl font-extrabold text-on-surface tracking-tight"
-            />
-            <Text className="text-sm font-bold text-on-surface-variant">
-              / ${totalMonthlyLimit.toLocaleString()}
-            </Text>
-          </View>
-
-          {/* Animated Progress Bar */}
-          <AnimatedProgressBar
-            progress={overallProgress}
-            height={10}
-            barColor={isOverallOver ? "#FFB4AB" : "#4DE082"}
-            trackColor="#131722"
-            className="my-3"
-          />
-
-          <View className="flex-row justify-between items-center mt-1">
-            <Text className="text-xs font-medium text-on-surface-variant">
-              {isOverallOver ? "Budget exceeded by" : "Remaining to spend"}
-            </Text>
-            <Text
-              className={`text-xs font-extrabold ${
-                isOverallOver ? "text-error" : "text-secondary"
-              }`}
-            >
-              {isOverallOver
-                ? `+$${Math.abs(totalRemaining).toFixed(2)}`
-                : `$${totalRemaining.toFixed(2)}`}
-            </Text>
-          </View>
-        </AnimatedBox>
-
-        {/* Category Budget Goals */}
-        <AnimatedBox delay={60} className="px-5 mb-8 flex-col gap-3">
-          <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-base font-bold text-on-surface tracking-tight">
-              Categories ({budgetGoals.length})
-            </Text>
-          </View>
-
-          {budgetGoals.map((goal) => {
-            const cat = categories.find((c) => c.id === goal.categoryId);
-            if (!cat) return null;
-
-            const spent = spentPerCategory[cat.id] || 0;
-            const percentage = Math.min((spent / goal.monthlyLimit) * 100, 100);
-            const isOver = spent > goal.monthlyLimit;
-            const remaining = goal.monthlyLimit - spent;
-
-            let barColor = cat.color || "#4DE082";
-            if (isOver) {
-              barColor = "#FFB4AB";
-            } else if (percentage > 80) {
-              barColor = "#FBBF24";
-            }
-
-            return (
-              <View
-                key={goal.id}
-                className="bg-surface-container p-5 rounded-[24px] shadow-sm border border-outline-variant/30 relative overflow-hidden"
-              >
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center gap-3">
-                    <View
-                      className="w-11 h-11 rounded-2xl items-center justify-center shadow-sm"
-                      style={{ backgroundColor: `${cat.color}25` }}
-                    >
-                      <MaterialIcons
-                        name={cat.icon as any}
-                        size={22}
-                        color={cat.color}
-                      />
-                    </View>
-                    <View>
-                      <Text className="text-base font-bold text-on-surface">
-                        {cat.name}
-                      </Text>
-                      <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                        {percentage.toFixed(0)}% of limit
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="items-end">
-                    <View className="flex-row items-baseline gap-1">
-                      <AnimatedCounter
-                        value={spent}
-                        prefix="$"
-                        decimals={0}
-                        className="text-base font-extrabold text-on-surface"
-                      />
-                      <Text className="text-xs text-on-surface-variant font-medium">
-                        / ${goal.monthlyLimit.toLocaleString()}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Animated Progress Bar */}
-                <AnimatedProgressBar
-                  progress={percentage}
-                  height={7}
-                  barColor={barColor}
-                  trackColor="#131722"
-                  className="my-1.5"
-                />
-
-                <View className="flex-row justify-between items-center mt-2.5 pt-2 border-t border-white/5">
-                  <Text className="text-xs text-on-surface-variant font-medium">
-                    {isOver ? "Over budget" : "Remaining"}
-                  </Text>
-                  <Text
-                    className={`text-xs font-bold ${
-                      isOver ? "text-error" : "text-on-surface"
-                    }`}
-                  >
-                    {isOver
-                      ? `+$${(spent - goal.monthlyLimit).toFixed(2)}`
-                      : `$${remaining.toFixed(2)}`}
-                  </Text>
-                </View>
+                <Text
+                  className={`text-[11px] font-bold ${
+                    isBudgetOver
+                      ? "text-error"
+                      : overallBudgetPercentage >= 80
+                      ? "text-amber-400"
+                      : "text-secondary"
+                  }`}
+                >
+                  {isBudgetOver
+                    ? "Over Budget"
+                    : `${overallBudgetPercentage.toFixed(0)}% Used`}
+                </Text>
               </View>
-            );
-          })}
+            </View>
 
-          {budgetGoals.length === 0 && (
-            <View className="py-16 items-center justify-center bg-surface-container rounded-[24px] border border-outline-variant/20">
-              <MaterialIcons
-                name="track-changes"
-                size={40}
-                color="#C3C6D6"
-                style={{ opacity: 0.5 }}
+            {/* Large Primary Hero Number */}
+            <View className="my-1">
+              <AnimatedCounter
+                value={isBudgetOver ? budgetOverAmount : totalBudgetRemaining}
+                prefix={isBudgetOver ? `-${currencySymbol}` : currencySymbol}
+                decimals={2}
+                showDecimalsSmall={true}
+                className={`text-4xl font-extrabold tracking-tight ${
+                  isBudgetOver ? "text-error" : "text-on-surface"
+                }`}
+                decimalClassName={`text-2xl font-bold ml-1 ${
+                  isBudgetOver ? "text-error" : "text-secondary"
+                }`}
               />
-              <Text className="text-sm font-semibold text-on-surface-variant mt-2">
-                No budget goals configured
+            </View>
+
+            {/* Supporting Metrics */}
+            <View className="flex-row gap-3 mt-5 pt-4 border-t border-white/5">
+              <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
+                <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
+                  Total Spent
+                </Text>
+                <AnimatedCounter
+                  value={totalBudgetSpent}
+                  prefix={currencySymbol}
+                  decimals={0}
+                  className="text-base font-bold text-on-surface"
+                />
+              </View>
+              <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
+                <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
+                  Monthly Limit
+                </Text>
+                <AnimatedCounter
+                  value={totalBudgetLimit}
+                  prefix={currencySymbol}
+                  decimals={0}
+                  className="text-base font-bold text-on-surface"
+                />
+              </View>
+            </View>
+          </AnimatedBox>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 1: BUDGET GOALS */}
+        {/* ========================================================================= */}
+        <AnimatedBox delay={60} className="px-5 mb-3.5 flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-base font-bold text-on-surface tracking-tight">
+              Budget Goals
+            </Text>
+            <View className="bg-surface-container-high px-2 py-0.5 rounded-full">
+              <Text className="text-[11px] font-bold text-primary">
+                {budgetGoals.length}
               </Text>
             </View>
-          )}
+          </View>
+
+          <ScaleButton
+            activeScale={0.88}
+            className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 items-center justify-center shadow-sm"
+            onPress={() => router.push("/set-budget")}
+          >
+            <MaterialIcons name="add" size={18} color="#B2C5FF" />
+          </ScaleButton>
         </AnimatedBox>
+
+        {budgetGoals.length > 0 ? (
+          <AnimatedBox delay={80} className="px-5 flex-col gap-3.5 mb-8">
+            {budgetGoals.map((goal) => {
+              const cat = categories.find((c) => c.id === goal.categoryId);
+              if (!cat) return null;
+
+              const spent = spentPerCategory[cat.id] || 0;
+              const limit = goal.monthlyLimit;
+              const percentage = limit > 0 ? (spent / limit) * 100 : 0;
+              const isOver = spent > limit;
+              const isApproaching = percentage >= 80 && !isOver;
+              const remaining = Math.max(limit - spent, 0);
+              const overAmount = Math.max(spent - limit, 0);
+
+              // Meaningful Color Logic
+              const ringColor = isOver
+                ? "#FFB4AB" // error / over budget
+                : isApproaching
+                ? "#FBBF24" // amber / approaching limit
+                : "#4DE082"; // secondary / on track
+
+              // Gifted Charts PieChart Donut Data
+              let chartData;
+              if (spent <= 0) {
+                chartData = [{ value: 1, color: "#262A35" }];
+              } else if (isOver) {
+                chartData = [{ value: 1, color: ringColor }];
+              } else {
+                chartData = [
+                  { value: spent, color: ringColor },
+                  { value: limit - spent, color: "#262A35" },
+                ];
+              }
+
+              return (
+                <ScaleButton
+                  key={goal.id}
+                  activeScale={0.97}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/set-budget",
+                      params: {
+                        categoryId: goal.categoryId,
+                        goalId: goal.id,
+                      },
+                    })
+                  }
+                  className="bg-surface-container rounded-[24px] p-4 border border-outline-variant/30 shadow-sm flex-row items-center gap-4"
+                >
+                  {/* Radial Progress Donut */}
+                  <View className="items-center justify-center w-[72px] h-[72px]">
+                    <PieChart
+                      data={chartData}
+                      donut
+                      radius={34}
+                      innerRadius={24}
+                      innerCircleColor="#1C1F2A"
+                      centerLabelComponent={() => (
+                        <Text
+                          className={`text-[10px] font-extrabold ${
+                            isOver
+                              ? "text-error"
+                              : isApproaching
+                              ? "text-amber-400"
+                              : "text-secondary"
+                          }`}
+                        >
+                          {percentage >= 1000 ? "999%" : `${percentage.toFixed(0)}%`}
+                        </Text>
+                      )}
+                    />
+                  </View>
+
+                  {/* Direct Text Information Hierarchy */}
+                  <View className="flex-1 justify-center">
+                    <View className="flex-row items-center justify-between mb-1">
+                      <View className="flex-row items-center gap-2 flex-1 mr-2">
+                        <View
+                          className="w-6 h-6 rounded-lg items-center justify-center"
+                          style={{ backgroundColor: `${cat.color}20` }}
+                        >
+                          <MaterialIcons
+                            name={cat.icon as any}
+                            size={14}
+                            color={cat.color}
+                          />
+                        </View>
+                        <Text
+                          className="text-sm font-bold text-on-surface"
+                          numberOfLines={1}
+                        >
+                          {cat.name}
+                        </Text>
+                      </View>
+
+                      <MaterialIcons name="chevron-right" size={18} color="#8D909F" />
+                    </View>
+
+                    {/* Hero Text */}
+                    <View className="my-0.5">
+                      {isOver ? (
+                        <Text className="text-base font-extrabold text-error">
+                          Over by {currencySymbol}
+                          {overAmount.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}
+                        </Text>
+                      ) : (
+                        <Text className="text-base font-extrabold text-on-surface">
+                          {currencySymbol}
+                          {remaining.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          <Text className="text-xs font-semibold text-secondary">
+                            remaining
+                          </Text>
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Supporting Text */}
+                    <Text
+                      className="text-xs text-on-surface-variant font-medium mt-0.5"
+                      numberOfLines={1}
+                    >
+                      Limit: {currencySymbol}
+                      {limit.toLocaleString()} • Spent: {currencySymbol}
+                      {spent.toLocaleString("en-US", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                      })}
+                    </Text>
+                  </View>
+                </ScaleButton>
+              );
+            })}
+          </AnimatedBox>
+        ) : (
+          <AnimatedBox delay={80} className="mx-5 mb-8">
+            <View className="p-6 bg-surface-container rounded-[24px] border border-outline-variant/30 items-center justify-center">
+              <Text className="text-xs text-on-surface-variant text-center mb-3">
+                No budget goals configured. Set limits to track your category spend.
+              </Text>
+              <ScaleButton
+                activeScale={0.92}
+                onPress={() => router.push("/set-budget")}
+                className="px-4 py-2 bg-primary/20 border border-primary/30 rounded-xl flex-row items-center gap-1.5"
+              >
+                <MaterialIcons name="add" size={16} color="#B2C5FF" />
+                <Text className="text-xs font-bold text-primary">
+                  Set Budget Goal
+                </Text>
+              </ScaleButton>
+            </View>
+          </AnimatedBox>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 2: SAVINGS GOALS */}
+        {/* ========================================================================= */}
+        <AnimatedBox
+          delay={100}
+          className="px-5 mb-3.5 mt-2 flex-row items-center justify-between"
+        >
+          <View className="flex-row items-center gap-2">
+            <Text className="text-base font-bold text-on-surface tracking-tight">
+              Savings Goals
+            </Text>
+            <View className="bg-primary/20 px-2 py-0.5 rounded-full">
+              <Text className="text-[11px] font-bold text-primary">
+                {savingsGoals.length}
+              </Text>
+            </View>
+          </View>
+
+          <ScaleButton
+            activeScale={0.88}
+            className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 items-center justify-center shadow-sm"
+            onPress={() => router.push("/add-savings-goal")}
+          >
+            <MaterialIcons name="add" size={18} color="#B2C5FF" />
+          </ScaleButton>
+        </AnimatedBox>
+
+        {savingsGoals.length > 0 ? (
+          <AnimatedBox delay={120} className="px-5 flex-col gap-3.5">
+            {savingsGoals.map((goal) => {
+              const current = goal.currentAmount;
+              const target = goal.targetAmount;
+              const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+              const isComplete = current >= target;
+              const timeIndicator = formatRemainingTime(goal.targetDate);
+
+              // Donut Ring Color: Secondary green (#4DE082) when complete, Primary (#B2C5FF) when in progress
+              const ringColor = isComplete ? "#4DE082" : "#B2C5FF";
+
+              // Donut Data
+              let chartData;
+              if (current <= 0) {
+                chartData = [{ value: 1, color: "#262A35" }];
+              } else if (isComplete) {
+                chartData = [{ value: 1, color: ringColor }];
+              } else {
+                chartData = [
+                  { value: current, color: ringColor },
+                  { value: target - current, color: "#262A35" },
+                ];
+              }
+
+              return (
+                <View
+                  key={goal.id}
+                  className="bg-surface-container rounded-[24px] p-4 border border-outline-variant/30 shadow-sm flex-col gap-3"
+                >
+                  <View className="flex-row items-center gap-4">
+                    {/* Focal Point: Gifted Charts Radial Progress Donut */}
+                    <View className="items-center justify-center w-[72px] h-[72px]">
+                      <PieChart
+                        data={chartData}
+                        donut
+                        radius={34}
+                        innerRadius={24}
+                        innerCircleColor="#1C1F2A"
+                        centerLabelComponent={() => (
+                          <View className="items-center justify-center">
+                            {isComplete ? (
+                              <MaterialIcons name="check" size={16} color="#4DE082" />
+                            ) : (
+                              <Text className="text-[10px] font-extrabold text-primary">
+                                {percentage.toFixed(0)}%
+                              </Text>
+                            )}
+                          </View>
+                        )}
+                      />
+                    </View>
+
+                    {/* Goal Details */}
+                    <View className="flex-1 justify-center">
+                      <View className="flex-row items-center justify-between mb-1">
+                        <View className="flex-row items-center gap-2 flex-1 mr-2">
+                          <View className="w-6 h-6 rounded-lg bg-primary/20 items-center justify-center">
+                            <MaterialIcons
+                              name={(goal.icon || "savings") as any}
+                              size={14}
+                              color="#B2C5FF"
+                            />
+                          </View>
+                          <Text
+                            className="text-sm font-bold text-on-surface"
+                            numberOfLines={1}
+                          >
+                            {goal.name}
+                          </Text>
+                        </View>
+
+                        {/* Complete Badge or Time Indicator */}
+                        {isComplete ? (
+                          <View className="px-2 py-0.5 rounded-full bg-secondary/15 border border-secondary/30">
+                            <Text className="text-[10px] font-bold text-secondary">
+                              Funded
+                            </Text>
+                          </View>
+                        ) : timeIndicator ? (
+                          <View className="px-2 py-0.5 rounded-full bg-surface-container-high border border-outline-variant/30">
+                            <Text className="text-[10px] font-medium text-on-surface-variant">
+                              {timeIndicator}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+
+                      {/* Saved Amount vs Target Amount */}
+                      <View className="my-0.5">
+                        <Text className="text-base font-extrabold text-on-surface">
+                          {currencySymbol}
+                          {current.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          <Text className="text-xs font-medium text-on-surface-variant">
+                            of {currencySymbol}
+                            {target.toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}
+                          </Text>
+                        </Text>
+                      </View>
+
+                      <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                        {isComplete
+                          ? "Target reached! Goal is fully funded."
+                          : `${currencySymbol}${(target - current).toLocaleString()} remaining to save`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Action Row: Real Contribution Trigger */}
+                  <View className="pt-2.5 border-t border-white/5 flex-row items-center justify-end gap-2">
+                    <ScaleButton
+                      activeScale={0.93}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/contribute-savings",
+                          params: { goalId: goal.id },
+                        })
+                      }
+                      className="px-4 py-2 rounded-xl bg-primary/15 border border-primary/30 flex-row items-center gap-1.5"
+                    >
+                      <MaterialIcons name="add" size={16} color="#B2C5FF" />
+                      <Text className="text-xs font-bold text-primary">
+                        {isComplete ? "Add More Funds" : "Contribute"}
+                      </Text>
+                    </ScaleButton>
+                  </View>
+                </View>
+              );
+            })}
+          </AnimatedBox>
+        ) : (
+          <AnimatedBox delay={120} className="mx-5 mb-8">
+            <View className="p-6 bg-surface-container rounded-[24px] border border-outline-variant/30 items-center justify-center">
+              <Text className="text-xs text-on-surface-variant text-center mb-3">
+                No savings goals configured yet. Start saving toward a specific target.
+              </Text>
+              <ScaleButton
+                activeScale={0.92}
+                onPress={() => router.push("/add-savings-goal")}
+                className="px-4 py-2 bg-primary/20 border border-primary/30 rounded-xl flex-row items-center gap-1.5"
+              >
+                <MaterialIcons name="add" size={16} color="#B2C5FF" />
+                <Text className="text-xs font-bold text-primary">
+                  Create Savings Goal
+                </Text>
+              </ScaleButton>
+            </View>
+          </AnimatedBox>
+        )}
       </ScrollView>
     </View>
   );

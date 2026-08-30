@@ -13,6 +13,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { GrabHandle } from "@/components/ui/GrabHandle";
+import { CreateCategoryModal } from "@/components/ui/CreateCategoryModal";
 
 type TransactionType = "expense" | "income" | "transfer";
 
@@ -46,6 +47,7 @@ export default function AddTransaction() {
   );
   const [merchant, setMerchant] = useState("");
   const [note, setNote] = useState("");
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
 
   const availableCategories =
     type === "transfer"
@@ -95,6 +97,7 @@ export default function AddTransaction() {
       <GrabHandle />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
         className="flex-1"
       >
         {/* Header */}
@@ -131,8 +134,8 @@ export default function AddTransaction() {
                 type === "income"
                   ? "#4DE082"
                   : type === "expense"
-                  ? "#FFB4AB"
-                  : "#B2C5FF"
+                    ? "#FFB4AB"
+                    : "#B2C5FF"
               }
               activeTextColor={type === "income" ? "#003919" : "#002C72"}
             />
@@ -193,11 +196,10 @@ export default function AddTransaction() {
                     key={acc.id}
                     activeScale={0.94}
                     onPress={() => setSelectedAccountId(acc.id)}
-                    className={`p-3.5 rounded-2xl flex-row items-center gap-2.5 border ${
-                      isSelected
-                        ? "bg-primary/20 border-primary"
-                        : "bg-surface-container border-outline-variant/30"
-                    }`}
+                    className={`p-3.5 rounded-2xl flex-row items-center gap-2.5 border ${isSelected
+                      ? "bg-primary/20 border-primary"
+                      : "bg-surface-container border-outline-variant/30"
+                      }`}
                   >
                     <MaterialIcons
                       name={acc.icon as any}
@@ -206,9 +208,8 @@ export default function AddTransaction() {
                     />
                     <View>
                       <Text
-                        className={`text-xs font-bold ${
-                          isSelected ? "text-primary" : "text-on-surface"
-                        }`}
+                        className={`text-xs font-bold ${isSelected ? "text-primary" : "text-on-surface"
+                          }`}
                       >
                         {acc.name}
                       </Text>
@@ -240,11 +241,10 @@ export default function AddTransaction() {
                       key={acc.id}
                       activeScale={0.94}
                       onPress={() => setSelectedDestinationAccountId(acc.id)}
-                      className={`p-3.5 rounded-2xl flex-row items-center gap-2.5 border ${
-                        isSelected
-                          ? "bg-secondary/20 border-secondary"
-                          : "bg-surface-container border-outline-variant/30"
-                      }`}
+                      className={`p-3.5 rounded-2xl flex-row items-center gap-2.5 border ${isSelected
+                        ? "bg-secondary/20 border-secondary"
+                        : "bg-surface-container border-outline-variant/30"
+                        }`}
                     >
                       <MaterialIcons
                         name={acc.icon as any}
@@ -253,9 +253,8 @@ export default function AddTransaction() {
                       />
                       <View>
                         <Text
-                          className={`text-xs font-bold ${
-                            isSelected ? "text-secondary" : "text-on-surface"
-                          }`}
+                          className={`text-xs font-bold ${isSelected ? "text-secondary" : "text-on-surface"
+                            }`}
                         >
                           {acc.name}
                         </Text>
@@ -284,11 +283,10 @@ export default function AddTransaction() {
                       key={cat.id}
                       activeScale={0.92}
                       onPress={() => setSelectedCategoryId(cat.id)}
-                      className={`p-3 rounded-2xl flex-col items-center justify-center gap-1.5 w-[30%] border ${
-                        isSelected
-                          ? "bg-primary/20 border-primary"
-                          : "bg-surface-container border-outline-variant/30"
-                      }`}
+                      className={`p-3 rounded-2xl flex-col items-center justify-center gap-1.5 w-[30%] border ${isSelected
+                        ? "bg-primary/20 border-primary"
+                        : "bg-surface-container border-outline-variant/30"
+                        }`}
                     >
                       <View
                         className="w-10 h-10 rounded-xl items-center justify-center shadow-sm"
@@ -306,15 +304,28 @@ export default function AddTransaction() {
                       </View>
                       <Text
                         numberOfLines={1}
-                        className={`text-xs font-bold ${
-                          isSelected ? "text-primary" : "text-on-surface-variant"
-                        }`}
+                        className={`text-xs font-bold ${isSelected ? "text-primary" : "text-on-surface-variant"
+                          }`}
                       >
                         {cat.name}
                       </Text>
                     </ScaleButton>
                   );
                 })}
+
+                {/* + New Category Tile */}
+                <ScaleButton
+                  activeScale={0.92}
+                  onPress={() => setShowCreateCategory(true)}
+                  className="p-3 rounded-2xl flex-col items-center justify-center gap-1.5 w-[30%] border border-dashed border-outline-variant/40 bg-surface-container-low"
+                >
+                  <View className="w-10 h-10 rounded-xl items-center justify-center bg-surface-container-high">
+                    <MaterialIcons name="add" size={22} color="#8D909F" />
+                  </View>
+                  <Text className="text-xs font-bold text-on-surface-variant">
+                    New
+                  </Text>
+                </ScaleButton>
               </View>
             </View>
           )}
@@ -353,7 +364,7 @@ export default function AddTransaction() {
           </View>
 
           {/* Save Button */}
-          <View className="px-5">
+          <View className="px-5 mb-8">
             <ScaleButton
               activeScale={0.95}
               className="w-full bg-primary py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg"
@@ -367,6 +378,13 @@ export default function AddTransaction() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CreateCategoryModal
+        visible={showCreateCategory}
+        onClose={() => setShowCreateCategory(false)}
+        defaultType={type === "transfer" ? undefined : type}
+        onCreated={(cat) => setSelectedCategoryId(cat.id)}
+      />
     </View>
   );
 }

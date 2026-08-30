@@ -17,6 +17,7 @@ import { ScaleButton } from "@/components/ui/ScaleButton";
 import { GrabHandle } from "@/components/ui/GrabHandle";
 import { Toggle } from "@/components/ui/Toggle";
 import { DueSoonBadge } from "@/components/ui/DueSoonBadge";
+import { CreateCategoryModal } from "@/components/ui/CreateCategoryModal";
 import {
   BillingCycle,
   WEEKDAYS,
@@ -66,6 +67,7 @@ export default function EditSubscription() {
   const [selectedColor, setSelectedColor] = useState(
     existingSub?.color || "#B2C5FF"
   );
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
 
   useEffect(() => {
     if (existingSub) {
@@ -196,6 +198,7 @@ export default function EditSubscription() {
       <GrabHandle />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
         className="flex-1"
       >
         {/* Header */}
@@ -223,7 +226,7 @@ export default function EditSubscription() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={{ paddingBottom: 50 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -318,8 +321,8 @@ export default function EditSubscription() {
                 {billingCycle === "weekly"
                   ? "Day of the Week"
                   : billingCycle === "yearly"
-                  ? "Annual Due Date"
-                  : "Due Date of the Month"}
+                    ? "Annual Due Date"
+                    : "Due Date of the Month"}
               </Text>
             </View>
 
@@ -496,6 +499,22 @@ export default function EditSubscription() {
                     </TouchableOpacity>
                   );
                 })}
+
+              {/* + New Category Chip */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowCreateCategory(true)}
+                className="px-4 py-2.5 rounded-2xl border border-dashed flex-row items-center gap-2"
+                style={{
+                  backgroundColor: '#1E2330',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                <MaterialIcons name="add" size={16} color="#8D909F" />
+                <Text className="text-xs font-bold" style={{ color: '#8D909F' }}>
+                  New
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -528,7 +547,7 @@ export default function EditSubscription() {
           </View>
 
           {/* Save Action */}
-          <View className="px-5">
+          <View className="px-5 mb-8">
             <ScaleButton
               activeScale={0.95}
               className="w-full bg-primary py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg"
@@ -542,6 +561,13 @@ export default function EditSubscription() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CreateCategoryModal
+        visible={showCreateCategory}
+        onClose={() => setShowCreateCategory(false)}
+        defaultType="expense"
+        onCreated={(cat) => setSelectedCategoryId(cat.id)}
+      />
     </View>
   );
 }

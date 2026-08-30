@@ -7,18 +7,13 @@ import { useAppStore } from "@/store/useAppStore";
 import { Account } from "@/types";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
-import { AnimatedProgressBar } from "@/components/ui/AnimatedProgressBar";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
 
 export default function Accounts() {
   const insets = useSafeAreaInsets();
   const accounts = useAppStore((state) => state.accounts);
-  const savingsGoals = useAppStore((state) => state.savingsGoals);
   const currency = useAppStore((state) => state.currency);
   const currencySymbol = currency?.symbol || "$";
-  const addSavingsContribution = useAppStore(
-    (state) => state.addSavingsContribution
-  );
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
@@ -52,6 +47,7 @@ export default function Accounts() {
     { label: "E-Wallet", value: "e-wallet" },
     { label: "Cash", value: "cash" },
     { label: "Cards", value: "credit card" },
+    { label: "Investments", value: "investment" },
   ];
 
   return (
@@ -217,7 +213,11 @@ export default function Accounts() {
                         <View className="w-1 h-1 rounded-full bg-outline-variant" />
                         <View className="bg-surface-container-highest px-2 py-0.5 rounded-md">
                           <Text className="text-[10px] font-semibold uppercase text-primary">
-                            {account.cardCategory ? `${account.cardCategory}${account.cardNetwork ? ` • ${account.cardNetwork}` : ''}` : account.type}
+                            {account.type === "cash" || account.type === "investment"
+                              ? account.type
+                              : account.cardCategory
+                              ? `${account.cardCategory}${account.cardNetwork ? ` • ${account.cardNetwork}` : ""}`
+                              : account.type}
                           </Text>
                         </View>
                       </View>
@@ -270,106 +270,6 @@ export default function Accounts() {
               </View>
             );
           })}
-        </AnimatedBox>
-
-        {/* Savings Goals Section */}
-        <AnimatedBox delay={120} className="px-5">
-          <View className="flex-row items-center justify-between mb-3.5">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-base font-bold text-on-surface tracking-tight">
-                Savings Goals
-              </Text>
-              <View className="bg-secondary/15 px-2 py-0.5 rounded-full">
-                <Text className="text-[11px] font-bold text-secondary">
-                  {savingsGoals.length} Active
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="flex-col gap-3">
-            {savingsGoals.map((goal) => {
-              const percentage = Math.min(
-                (goal.currentAmount / goal.targetAmount) * 100,
-                100
-              );
-
-              return (
-                <View
-                  key={goal.id}
-                  className="bg-surface-container p-5 rounded-[24px] shadow-sm border border-outline-variant/30"
-                >
-                  <View className="flex-row items-center justify-between mb-3">
-                    <View className="flex-row items-center gap-3">
-                      <View
-                        className="w-11 h-11 rounded-2xl items-center justify-center"
-                        style={{ backgroundColor: `${goal.color}25` }}
-                      >
-                        <MaterialIcons
-                          name={goal.icon as any}
-                          size={22}
-                          color={goal.color}
-                        />
-                      </View>
-                      <View>
-                        <Text className="text-sm font-bold text-on-surface">
-                          {goal.name}
-                        </Text>
-                        {goal.targetDate && (
-                          <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                            Target:{" "}
-                            {new Date(goal.targetDate).toLocaleDateString(
-                              "en-US",
-                              { month: "short", year: "numeric" }
-                            )}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-
-                    <View className="items-end">
-                      <AnimatedCounter
-                        value={goal.currentAmount}
-                        prefix={currencySymbol}
-                        decimals={0}
-                        className="text-base font-extrabold text-on-surface"
-                      />
-                      <Text className="text-xs text-on-surface-variant font-medium">
-                        of {currencySymbol}{goal.targetAmount.toLocaleString()}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Animated Progress Bar */}
-                  <AnimatedProgressBar
-                    progress={percentage}
-                    height={8}
-                    barColor={goal.color}
-                    trackColor="#131722"
-                    className="my-1"
-                  />
-
-                  {/* Goal Footer with Interactive Contribute Button */}
-                  <View className="flex-row justify-between items-center mt-3 pt-2 border-t border-white/5">
-                    <Text className="text-xs font-semibold text-on-surface-variant">
-                      {percentage.toFixed(0)}% reached
-                    </Text>
-
-                    <ScaleButton
-                      activeScale={0.92}
-                      className="px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/25 flex-row items-center gap-1"
-                      onPress={() => addSavingsContribution(goal.id, 100)}
-                    >
-                      <MaterialIcons name="add" size={16} color="#B2C5FF" />
-                      <Text className="text-xs font-bold text-primary">
-                        + {currencySymbol}100
-                      </Text>
-                    </ScaleButton>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
         </AnimatedBox>
       </ScrollView>
     </View>

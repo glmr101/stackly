@@ -13,7 +13,7 @@ export type Category = {
 
 export type Transaction = {
   id: string;
-  type: 'income' | 'expense' | 'transfer';
+  type: 'income' | 'expense' | 'transfer' | 'savings';
   amount: number;
   payee: string;
   categoryId?: string;
@@ -21,6 +21,7 @@ export type Transaction = {
   note?: string;
   accountId: string;
   destinationAccountId?: string; // For transfers
+  savingsGoalId?: string; // For savings contributions
 };
 
 export type Account = {

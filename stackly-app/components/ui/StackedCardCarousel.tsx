@@ -244,10 +244,14 @@ function SingleStackedCard({
     }
   });
 
+  const isCard =
+    card.accountType !== 'cash' &&
+    card.accountType !== 'investment' &&
+    (card.cardType !== 'generic' || !!card.cardNetwork);
   const isMastercard =
     card.cardNetwork === 'mastercard' || card.cardType === 'mastercard';
   const categoryLabel =
-    card.cardCategory || (card.accountType === 'credit card' ? 'credit' : 'debit');
+    card.cardCategory || (card.accountType === 'credit card' ? 'credit' : isCard ? 'debit' : '');
   const institutionName =
     card.institution || card.bankName || 'BANK';
   const accountLabel =
@@ -285,19 +289,29 @@ function SingleStackedCard({
             </Text>
           </View>
 
-          {/* Card Network Brand Badge */}
+          {/* Card Network Brand Badge or Account Type Badge */}
           <View style={styles.cardNetworkBadge}>
-            {isMastercard ? (
-              <View style={styles.mastercardCircles}>
-                <View style={styles.mastercardRed} />
-                <View style={styles.mastercardYellow} />
-              </View>
+            {isCard && (card.cardNetwork || card.cardType !== 'generic') ? (
+              <>
+                {isMastercard ? (
+                  <View style={styles.mastercardCircles}>
+                    <View style={styles.mastercardRed} />
+                    <View style={styles.mastercardYellow} />
+                  </View>
+                ) : (
+                  <Text style={styles.visaBrandText}>VISA</Text>
+                )}
+                {categoryLabel ? (
+                  <Text style={styles.cardCategoryText}>
+                    {categoryLabel.toUpperCase()}
+                  </Text>
+                ) : null}
+              </>
             ) : (
-              <Text style={styles.visaBrandText}>VISA</Text>
+              <Text style={styles.cardCategoryText}>
+                {(card.accountType || 'ACCOUNT').toUpperCase()}
+              </Text>
             )}
-            <Text style={styles.cardCategoryText}>
-              {categoryLabel.toUpperCase()}
-            </Text>
           </View>
         </View>
 
