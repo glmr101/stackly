@@ -28,6 +28,7 @@ export default function Home() {
   const accounts = useAppStore((state) => state.accounts);
   const transactions = useAppStore((state) => state.transactions);
   const subscriptions = useAppStore((state) => state.subscriptions);
+  const categories = useAppStore((state) => state.categories);
   const currency = useAppStore((state) => state.currency);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -519,6 +520,8 @@ export default function Home() {
         card={selectedViewerCard}
         sourceLayout={selectedViewerLayout}
         currencySymbol={currencySymbol}
+        transactions={transactions}
+        categories={categories}
         onClose={() => setSelectedViewerCard(null)}
       />
     </View>
