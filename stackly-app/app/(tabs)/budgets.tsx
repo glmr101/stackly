@@ -1,5 +1,12 @@
-import React from "react";
-import { View, Text, ScrollView } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Dimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +15,9 @@ import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
 import { ScaleButton } from "@/components/ui/ScaleButton";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const HERO_CARD_WIDTH = SCREEN_WIDTH - 40; // matches px-5 / mx-5
 
 function formatRemainingTime(targetDateStr?: string): string | null {
   if (!targetDateStr) return null;
@@ -35,6 +45,7 @@ function formatRemainingTime(targetDateStr?: string): string | null {
 export default function Budgets() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
 
   const categories = useAppStore((state) => state.categories);
   const budgetGoals = useAppStore((state) => state.budgetGoals);
@@ -75,6 +86,39 @@ export default function Budgets() {
   const overallBudgetPercentage =
     totalBudgetLimit > 0 ? (totalBudgetSpent / totalBudgetLimit) * 100 : 0;
 
+  // Aggregated totals across all configured savings goals
+  const totalSavingsCurrent = savingsGoals.reduce(
+    (sum, g) => sum + g.currentAmount,
+    0
+  );
+  const totalSavingsTarget = savingsGoals.reduce(
+    (sum, g) => sum + g.targetAmount,
+    0
+  );
+  const savingsGoalsCount = savingsGoals.length;
+  const averageSavingsCurrent =
+    savingsGoalsCount > 0 ? totalSavingsCurrent / savingsGoalsCount : 0;
+  const averageSavingsTarget =
+    savingsGoalsCount > 0 ? totalSavingsTarget / savingsGoalsCount : 0;
+  const totalSavingsRemaining = Math.max(
+    totalSavingsTarget - totalSavingsCurrent,
+    0
+  );
+  const overallSavingsPercentage =
+    totalSavingsTarget > 0
+      ? Math.min((totalSavingsCurrent / totalSavingsTarget) * 100, 100)
+      : 0;
+
+  const handleHeroScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const page = Math.round(x / SCREEN_WIDTH);
+    if (page !== activeHeroIndex && (page === 0 || page === 1)) {
+      setActiveHeroIndex(page);
+    }
+  };
+
+  const hasGoals = budgetGoals.length > 0 || savingsGoals.length > 0;
+
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Top Header */}
@@ -96,83 +140,177 @@ export default function Budgets() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Monthly Budget Summary Hero Card */}
-        {budgetGoals.length > 0 && (
-          <AnimatedBox
-            delay={30}
-            className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
-          >
-            <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+        {/* Swipeable Hero Summary Card Carousel */}
+        {hasGoals && (
+          <AnimatedBox delay={30} className="mt-3 mb-5">
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleHeroScroll}
+              scrollEventThrottle={16}
+            >
+              {/* CARD 1: Monthly Budget Summary */}
+              <View style={{ width: SCREEN_WIDTH, paddingHorizontal: 20 }}>
+                <View className="p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative">
+                  <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
 
-            <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                {isBudgetOver ? "Budget Exceeded" : "Remaining Budget"}
-              </Text>
-              <View
-                className={`px-2.5 py-0.5 rounded-full border ${
-                  isBudgetOver
-                    ? "bg-error/15 border-error/30"
-                    : overallBudgetPercentage >= 80
-                    ? "bg-amber-400/15 border-amber-400/30"
-                    : "bg-secondary/15 border-secondary/30"
-                }`}
-              >
-                <Text
-                  className={`text-[11px] font-bold ${
-                    isBudgetOver
-                      ? "text-error"
-                      : overallBudgetPercentage >= 80
-                      ? "text-amber-400"
-                      : "text-secondary"
-                  }`}
-                >
-                  {isBudgetOver
-                    ? "Over Budget"
-                    : `${overallBudgetPercentage.toFixed(0)}% Used`}
-                </Text>
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                      {isBudgetOver ? "Budget Exceeded" : "Remaining Budget"}
+                    </Text>
+                    <View
+                      className={`px-2.5 py-0.5 rounded-full border ${
+                        isBudgetOver
+                          ? "bg-error/15 border-error/30"
+                          : overallBudgetPercentage >= 80
+                          ? "bg-amber-400/15 border-amber-400/30"
+                          : "bg-secondary/15 border-secondary/30"
+                      }`}
+                    >
+                      <Text
+                        className={`text-[11px] font-bold ${
+                          isBudgetOver
+                            ? "text-error"
+                            : overallBudgetPercentage >= 80
+                            ? "text-amber-400"
+                            : "text-secondary"
+                        }`}
+                      >
+                        {isBudgetOver
+                          ? "Over Budget"
+                          : `${overallBudgetPercentage.toFixed(0)}% Used`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Large Primary Hero Number */}
+                  <View className="my-1">
+                    <AnimatedCounter
+                      value={isBudgetOver ? budgetOverAmount : totalBudgetRemaining}
+                      prefix={isBudgetOver ? `-${currencySymbol}` : currencySymbol}
+                      decimals={2}
+                      showDecimalsSmall={true}
+                      className={`text-4xl font-extrabold tracking-tight ${
+                        isBudgetOver ? "text-error" : "text-on-surface"
+                      }`}
+                      decimalClassName={`text-2xl font-bold ml-1 ${
+                        isBudgetOver ? "text-error" : "text-secondary"
+                      }`}
+                    />
+                  </View>
+
+                  {/* Supporting Metrics */}
+                  <View className="flex-row gap-3 mt-5 pt-4 border-t border-white/5">
+                    <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
+                      <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
+                        Total Spent
+                      </Text>
+                      <AnimatedCounter
+                        value={totalBudgetSpent}
+                        prefix={currencySymbol}
+                        decimals={0}
+                        className="text-base font-bold text-on-surface"
+                      />
+                    </View>
+                    <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
+                      <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
+                        Monthly Limit
+                      </Text>
+                      <AnimatedCounter
+                        value={totalBudgetLimit}
+                        prefix={currencySymbol}
+                        decimals={0}
+                        className="text-base font-bold text-on-surface"
+                      />
+                    </View>
+                  </View>
+                </View>
               </View>
-            </View>
 
-            {/* Large Primary Hero Number */}
-            <View className="my-1">
-              <AnimatedCounter
-                value={isBudgetOver ? budgetOverAmount : totalBudgetRemaining}
-                prefix={isBudgetOver ? `-${currencySymbol}` : currencySymbol}
-                decimals={2}
-                showDecimalsSmall={true}
-                className={`text-4xl font-extrabold tracking-tight ${
-                  isBudgetOver ? "text-error" : "text-on-surface"
-                }`}
-                decimalClassName={`text-2xl font-bold ml-1 ${
-                  isBudgetOver ? "text-error" : "text-secondary"
+              {/* CARD 2: Savings Summary (with Average Total of Savings) */}
+              <View style={{ width: SCREEN_WIDTH, paddingHorizontal: 20 }}>
+                <View className="p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative">
+                  <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-secondary/15 blur-2xl pointer-events-none" />
+
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                      Total Savings
+                    </Text>
+                    <View
+                      className={`px-2.5 py-0.5 rounded-full border ${
+                        overallSavingsPercentage >= 100
+                          ? "bg-secondary/15 border-secondary/30"
+                          : "bg-primary/15 border-primary/30"
+                      }`}
+                    >
+                      <Text
+                        className={`text-[11px] font-bold ${
+                          overallSavingsPercentage >= 100
+                            ? "text-secondary"
+                            : "text-primary"
+                        }`}
+                      >
+                        {overallSavingsPercentage >= 100
+                          ? "Fully Funded"
+                          : `${overallSavingsPercentage.toFixed(0)}% Saved`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Large Primary Hero Number */}
+                  <View className="my-1">
+                    <AnimatedCounter
+                      value={totalSavingsCurrent}
+                      prefix={currencySymbol}
+                      decimals={2}
+                      showDecimalsSmall={true}
+                      className="text-4xl font-extrabold tracking-tight text-on-surface"
+                      decimalClassName="text-2xl font-bold ml-1 text-primary"
+                    />
+                  </View>
+
+                  {/* Supporting Metrics: Average Total of Savings & Total Target */}
+                  <View className="flex-row gap-3 mt-5 pt-4 border-t border-white/5">
+                    <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
+                      <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
+                        Avg / Goal ({savingsGoalsCount})
+                      </Text>
+                      <AnimatedCounter
+                        value={averageSavingsCurrent}
+                        prefix={currencySymbol}
+                        decimals={0}
+                        className="text-base font-bold text-on-surface"
+                      />
+                    </View>
+                    <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
+                      <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
+                        Target Total
+                      </Text>
+                      <AnimatedCounter
+                        value={totalSavingsTarget}
+                        prefix={currencySymbol}
+                        decimals={0}
+                        className="text-base font-bold text-on-surface"
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Pagination Indicators */}
+            <View className="flex-row items-center justify-center gap-1.5 mt-3">
+              <View
+                className={`h-1.5 rounded-full ${
+                  activeHeroIndex === 0 ? "w-6 bg-primary" : "w-1.5 bg-outline-variant/40"
                 }`}
               />
-            </View>
-
-            {/* Supporting Metrics */}
-            <View className="flex-row gap-3 mt-5 pt-4 border-t border-white/5">
-              <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
-                <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
-                  Total Spent
-                </Text>
-                <AnimatedCounter
-                  value={totalBudgetSpent}
-                  prefix={currencySymbol}
-                  decimals={0}
-                  className="text-base font-bold text-on-surface"
-                />
-              </View>
-              <View className="flex-1 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/20">
-                <Text className="text-[11px] font-medium text-on-surface-variant mb-0.5">
-                  Monthly Limit
-                </Text>
-                <AnimatedCounter
-                  value={totalBudgetLimit}
-                  prefix={currencySymbol}
-                  decimals={0}
-                  className="text-base font-bold text-on-surface"
-                />
-              </View>
+              <View
+                className={`h-1.5 rounded-full ${
+                  activeHeroIndex === 1 ? "w-6 bg-primary" : "w-1.5 bg-outline-variant/40"
+                }`}
+              />
             </View>
           </AnimatedBox>
         )}

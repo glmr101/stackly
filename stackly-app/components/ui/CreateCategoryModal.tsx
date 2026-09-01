@@ -105,7 +105,7 @@ export function CreateCategoryModal({
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 20}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 20}
           style={styles.keyboardContainer}
         >
           {/* Sheet Card */}
@@ -134,7 +134,7 @@ export function CreateCategoryModal({
 
             <ScrollView
               style={styles.flex1}
-              contentContainerStyle={{ paddingBottom: 80 }}
+              contentContainerStyle={{ paddingBottom: 1 }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >

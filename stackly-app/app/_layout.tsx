@@ -147,6 +147,14 @@ export default function RootLayout() {
             gestureEnabled: true,
           }}
         />
+        <Stack.Screen
+          name="subscription"
+          options={{
+            animation: "slide_from_right",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

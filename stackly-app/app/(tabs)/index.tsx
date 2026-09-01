@@ -15,7 +15,8 @@ import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
-import { StackedCardCarousel, CardItem } from "@/components/ui/StackedCardCarousel";
+import { CenteredCardCarousel, CardItem } from "@/components/ui/StackedCardCarousel";
+import { Card3DViewerModal, CardLayoutRect } from "@/components/ui/Card3DViewerModal";
 import { findPhilippineBank } from "@/data/philippineBanks";
 import { formatDueSchedule, getDueStatus, formatReadableDate } from "@/lib/subscriptions";
 import { DueSoonBadge } from "@/components/ui/DueSoonBadge";
@@ -30,6 +31,8 @@ export default function Home() {
   const currency = useAppStore((state) => state.currency);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedViewerCard, setSelectedViewerCard] = useState<CardItem | null>(null);
+  const [selectedViewerLayout, setSelectedViewerLayout] = useState<CardLayoutRect | null>(null);
 
   const currencySymbol = currency?.symbol || "₱";
   const now = new Date();
@@ -41,11 +44,30 @@ export default function Home() {
 
   const cardItems: CardItem[] = displayedAccounts.map((acc, index) => {
     const phBank = findPhilippineBank(acc.bankCode || acc.institution || acc.name);
-    const bankColor = phBank?.color || "#161B26";
     const institution = acc.institution || phBank?.shortName || acc.name;
     const isCard = acc.type !== "cash" && acc.type !== "investment";
     const cardNetwork = isCard ? (acc.cardNetwork || (acc.type === "credit card" ? "visa" : "mastercard")) : undefined;
     const cardCategory = isCard ? (acc.cardCategory || (acc.type === "credit card" ? "credit" : "debit")) : undefined;
+
+    // Palette fallbacks based on account type
+    const fallbackColors = [
+      "#B11116", // BPI Crimson
+      "#00D664", // Maya Green
+      "#FF5722", // MariBank Coral
+      "#0052CC", // Metrobank / Royal Blue
+      "#7C3AED", // Vivid Purple
+      "#0284C7", // GCash Sky Blue
+    ];
+    const defaultColor =
+      acc.type === "cash"
+        ? "#152E22"
+        : acc.type === "investment"
+        ? "#065F46"
+        : acc.type === "credit card"
+        ? "#7C3AED"
+        : fallbackColors[index % fallbackColors.length];
+
+    const backgroundColor = phBank?.color || defaultColor;
 
     return {
       id: acc.id,
@@ -60,7 +82,7 @@ export default function Home() {
       cardHolder: institution.toUpperCase(),
       expiryDate: isCard ? "12/28" : undefined,
       balance: acc.balance,
-      backgroundColor: acc.type === "cash" ? "#1E293B" : acc.type === "investment" ? "#0F3A2E" : bankColor,
+      backgroundColor: backgroundColor,
       secondaryColor: "rgba(255, 255, 255, 0.15)",
       textColor: "#FFFFFF",
       icon: acc.icon,
@@ -351,9 +373,9 @@ export default function Home() {
           </Link>
         </AnimatedBox>
 
-        {/* Accounts Stacked Cards Carousel */}
+        {/* Accounts Centered Cards Carousel */}
         <AnimatedBox delay={80} className="mb-6">
-          <View className="px-5 mb-3 flex-row items-center justify-between">
+          <View className="px-5 mb-2 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Text className="text-base font-bold text-on-surface tracking-tight">
                 Accounts & Cards
@@ -365,52 +387,27 @@ export default function Home() {
               </View>
             </View>
             <View className="flex-row items-center gap-2">
-              {accounts.length > 3 && (
-                <Link href={"/accounts" as any} asChild>
-                  <ScaleButton activeScale={0.92} hitSlop={8} className="mr-1">
-                    <Text className="text-xs font-semibold text-primary">
-                      View all
-                    </Text>
-                  </ScaleButton>
-                </Link>
-              )}
-            </View>
-          </View>
-
-          {cardItems.length > 0 ? (
-            <View className="px-5">
-              <StackedCardCarousel
-                cards={cardItems}
-                currencySymbol={currencySymbol}
-              />
-            </View>
-          ) : (
-            <View className="mx-5 p-6 bg-surface-container rounded-[24px] border border-outline-variant/30 items-center justify-center">
-              <MaterialIcons
-                name="account-balance-wallet"
-                size={36}
-                color="#C3C6D6"
-                style={{ opacity: 0.6 }}
-              />
-              <Text className="text-sm font-bold text-on-surface mt-2">
-                No Accounts Added
-              </Text>
-              <Text className="text-xs text-on-surface-variant text-center mt-1 mb-4">
-                Add your bank, card, or cash accounts to track total net worth.
-              </Text>
-              <Link href={"/add-account" as any} asChild>
-                <ScaleButton
-                  activeScale={0.92}
-                  className="px-4 py-2 bg-primary rounded-xl flex-row items-center gap-1.5"
-                >
-                  <MaterialIcons name="add" size={18} color="#002C72" />
-                  <Text className="text-xs font-extrabold text-on-primary">
-                    Add Account
+              <Link href={"/accounts" as any} asChild>
+                <ScaleButton activeScale={0.92} hitSlop={8} className="mr-1">
+                  <Text className="text-xs font-semibold text-primary">
+                    View all →
                   </Text>
                 </ScaleButton>
               </Link>
             </View>
-          )}
+          </View>
+
+          <CenteredCardCarousel
+            cards={cardItems}
+            currencySymbol={currencySymbol}
+            onCardPress={(card: CardItem, sourceLayout?: CardLayoutRect) => {
+              setSelectedViewerLayout(sourceLayout || null);
+              setSelectedViewerCard(card);
+            }}
+            onAddCard={() => {
+              router.push("/add-account" as any);
+            }}
+          />
         </AnimatedBox>
 
         {/* Upcoming Bills */}
@@ -515,6 +512,15 @@ export default function Home() {
           )}
         </AnimatedBox>
       </ScrollView>
+
+      {/* Interactive 3D Card Object Viewer Modal */}
+      <Card3DViewerModal
+        visible={!!selectedViewerCard}
+        card={selectedViewerCard}
+        sourceLayout={selectedViewerLayout}
+        currencySymbol={currencySymbol}
+        onClose={() => setSelectedViewerCard(null)}
+      />
     </View>
   );
 }

@@ -5,6 +5,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useAppStore } from "@/store/useAppStore";
 import { Account } from "@/types";
+import { Card3DViewerModal, CardLayoutRect } from "@/components/ui/Card3DViewerModal";
+import { CardItem } from "@/components/ui/StackedCardCarousel";
+import { findPhilippineBank } from "@/data/philippineBanks";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
@@ -17,6 +20,8 @@ export default function Accounts() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  const [selectedViewerCard, setSelectedViewerCard] = useState<CardItem | null>(null);
+  const [selectedViewerLayout, setSelectedViewerLayout] = useState<CardLayoutRect | null>(null);
 
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   const totalLiquid = accounts
@@ -34,6 +39,33 @@ export default function Accounts() {
 
   const toggleDetails = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const mapAccountToCardItem = (acc: Account): CardItem => {
+    const phBank = findPhilippineBank(acc.bankCode || acc.institution || acc.name);
+    const institution = acc.institution || phBank?.shortName || acc.name;
+    const isCard = acc.type !== "cash" && acc.type !== "investment";
+    const cardNetwork = isCard ? (acc.cardNetwork || (acc.type === "credit card" ? "visa" : "mastercard")) : undefined;
+    const cardCategory = isCard ? (acc.cardCategory || (acc.type === "credit card" ? "credit" : "debit")) : undefined;
+
+    return {
+      id: acc.id,
+      bankName: acc.name,
+      institution: institution,
+      accountName: acc.name,
+      cardType: (cardNetwork as any) || "generic",
+      cardNetwork: cardNetwork,
+      cardCategory: cardCategory,
+      accountType: acc.type,
+      cardNumber: isCard ? `•••• ${acc.id.replace(/\D/g, "").slice(-4) || "8421"}` : undefined,
+      cardHolder: institution.toUpperCase(),
+      expiryDate: isCard ? "12/28" : undefined,
+      balance: acc.balance,
+      backgroundColor: phBank?.color || (acc.type === "cash" ? "#152E22" : acc.type === "investment" ? "#065F46" : "#1E293B"),
+      textColor: "#FFFFFF",
+      icon: acc.icon,
+      bankCode: acc.bankCode || phBank?.code,
+    };
   };
 
   const filteredAccounts =
@@ -254,6 +286,16 @@ export default function Accounts() {
                         </Text>
                       </ScaleButton>
                     </Link>
+                    <ScaleButton
+                      activeScale={0.92}
+                      onPress={() => setSelectedViewerCard(mapAccountToCardItem(account))}
+                      className="flex-1 py-2.5 rounded-xl bg-purple-500/15 border border-purple-500/25 items-center justify-center flex-row gap-1.5"
+                    >
+                      <MaterialIcons name="3d-rotation" size={16} color="#C084FC" />
+                      <Text className="text-xs font-bold text-purple-300">
+                        3D View
+                      </Text>
+                    </ScaleButton>
                     <Link href={"/transactions" as any} asChild>
                       <ScaleButton
                         activeScale={0.92}
@@ -270,8 +312,49 @@ export default function Accounts() {
               </View>
             );
           })}
+
+          {filteredAccounts.length === 0 && (
+            <View className="bg-surface-container rounded-[24px] border border-outline-variant/30 p-6 items-center justify-center">
+              <MaterialIcons
+                name="account-balance-wallet"
+                size={36}
+                color="#C3C6D6"
+                style={{ opacity: 0.6 }}
+              />
+              <Text className="text-sm font-bold text-on-surface mt-2">
+                No Accounts Found
+              </Text>
+              <Text className="text-xs text-on-surface-variant text-center mt-1 mb-4">
+                {accounts.length === 0
+                  ? "Get started by adding your first bank, e-wallet, cash, or credit card."
+                  : "No accounts match the selected category filter."}
+              </Text>
+              {accounts.length === 0 && (
+                <Link href={"/add-account" as any} asChild>
+                  <ScaleButton
+                    activeScale={0.92}
+                    className="px-4 py-2.5 bg-primary rounded-xl flex-row items-center gap-1.5"
+                  >
+                    <MaterialIcons name="add" size={18} color="#002C72" />
+                    <Text className="text-xs font-extrabold text-on-primary">
+                      + Add First Account
+                    </Text>
+                  </ScaleButton>
+                </Link>
+              )}
+            </View>
+          )}
         </AnimatedBox>
       </ScrollView>
+
+      {/* Interactive 3D Card Object Viewer Modal */}
+      <Card3DViewerModal
+        visible={!!selectedViewerCard}
+        card={selectedViewerCard}
+        sourceLayout={selectedViewerLayout}
+        currencySymbol={currencySymbol}
+        onClose={() => setSelectedViewerCard(null)}
+      />
     </View>
   );
 }

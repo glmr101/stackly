@@ -21,6 +21,8 @@ import {
   findPhilippineBank,
 } from "@/data/philippineBanks";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { MAX_ACCOUNT_COUNT } from "@/constants";
+import { Alert } from "react-native";
 
 type AccountType = Account["type"];
 type CardCategory = "debit" | "credit";
@@ -34,6 +36,7 @@ interface AccountTypeOption {
 export default function AddAccount() {
   const router = useRouter();
 
+  const accounts = useAppStore((state) => state.accounts);
   const addAccount = useAppStore((state) => state.addAccount);
   const currency = useAppStore((state) => state.currency);
 
@@ -141,6 +144,23 @@ export default function AddAccount() {
         : selectedBank.shortName;
 
   const handleSave = () => {
+    if (accounts.length >= MAX_ACCOUNT_COUNT) {
+      Alert.alert(
+        "Account Limit Reached",
+        `Free accounts are limited to ${MAX_ACCOUNT_COUNT} accounts and cards. Upgrade to Stackly Pro for unlimited access!`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "View Pro Plans",
+            onPress: () => {
+              router.replace("/subscription" as any);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     const parsedBalance = parseFloat(balance || "0");
     const institutionName =
       type === "cash"

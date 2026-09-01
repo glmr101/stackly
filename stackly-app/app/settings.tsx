@@ -260,6 +260,38 @@ export default function Settings() {
             </View>
           </View>
 
+          {/* Stackly Pro Subscription Banner */}
+          <ScaleButton
+            activeScale={0.97}
+            onPress={() => router.push("/subscription" as any)}
+            className="p-4 rounded-[24px] bg-[#161B2E] border border-primary/30 shadow-md relative overflow-hidden"
+          >
+            <View className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-primary/20 blur-xl pointer-events-none" />
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3.5 flex-1 pr-2">
+                <View className="w-11 h-11 rounded-2xl bg-primary/20 items-center justify-center border border-primary/30">
+                  <MaterialIcons name="star" size={24} color="#B2C5FF" />
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-sm font-extrabold text-white">
+                      Stackly Pro
+                    </Text>
+                    <View className="bg-primary/20 px-2 py-0.5 rounded-full border border-primary/30">
+                      <Text className="text-[9px] font-black text-primary uppercase">
+                        Upgrade
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-xs text-on-surface-variant mt-0.5" numberOfLines={1}>
+                    Unlimited cards, accounts & AI forecasts
+                  </Text>
+                </View>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color="#B2C5FF" />
+            </View>
+          </ScaleButton>
+
           {/* General Settings Group */}
           <View>
             <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5 px-1">

@@ -1,5 +1,5 @@
 // Images for Stackly
-
 export const images = {
-  // Add images here, e.g. mascot: require("../../assets/images/mascot.png"),
+  lockIcon: require("../assets/images/lock_icon.jpg"),
+  subscriptionHero: require("../assets/images/subscription_hero.jpg"),
 };

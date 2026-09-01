@@ -8,13 +8,17 @@ import { MaterialIconName } from '@/types';
 import { ScaleButton } from './ScaleButton';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
+import { MAX_ACCOUNT_COUNT } from '@/constants';
+import { useAppStore } from '@/store/useAppStore';
+
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const accounts = useAppStore((s) => s.accounts);
 
   const currentRouteName = state.routes[state.index].name;
   let fabHref = '/add-transaction';
   if (currentRouteName === 'accounts') {
-    fabHref = '/add-account';
+    fabHref = accounts.length >= MAX_ACCOUNT_COUNT ? '/subscription' : '/add-account';
   } else if (currentRouteName === 'subscriptions') {
     fabHref = '/add-subscription';
   } else if (currentRouteName === 'budgets') {
