@@ -37,12 +37,10 @@ export function RealisticCardFace({
   const expiryDate = card.expiryDate || '12/29';
 
   return (
-    <View style={[styles.cardBody, { backgroundColor: themeColor, shadowColor: themeColor }, style]}>
+    <View style={[styles.cardBody, { backgroundColor: themeColor }, style]}>
       {/* Background Texture & Ambient Mesh Orbs */}
       <View style={styles.cardInnerGlow} pointerEvents="none" />
       <View style={styles.cardSpecularShine} pointerEvents="none" />
-      <View style={styles.cardLuminousAura} pointerEvents="none" />
-      <View style={styles.cardNeonRim} pointerEvents="none" />
 
       {/* Injected overlays (e.g. 3D holographic sheen or frosted blur) */}
       {children}
@@ -186,7 +184,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   cardSpecularShine: {
     position: 'absolute',
@@ -195,25 +193,7 @@ const styles = StyleSheet.create({
     width: 170,
     height: 170,
     borderRadius: 85,
-    backgroundColor: 'rgba(0, 0, 0, 0.22)',
-  },
-  cardLuminousAura: {
-    position: 'absolute',
-    top: -30,
-    left: 40,
-    width: 180,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  cardNeonRim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
   },
   cardHeader: {
     flexDirection: 'row',

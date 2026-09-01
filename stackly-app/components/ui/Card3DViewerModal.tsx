@@ -14,10 +14,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  withRepeat,
-  withSequence,
   interpolate,
-  Extrapolation,
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
@@ -90,7 +87,6 @@ export function Card3DViewerModal({
   const translateY = useSharedValue(0);
   const zoomScale = useSharedValue(0.6);
   const backdropOpacity = useSharedValue(0);
-  const glowPulse = useSharedValue(1);
   const rotateX = useSharedValue(0);
   const rotateY = useSharedValue(0);
   const flipRotation = useSharedValue(0);
@@ -126,11 +122,10 @@ export function Card3DViewerModal({
     const dur = 260;
     const easeOut = Easing.out(Easing.cubic);
 
-    // Flatten 3D tilt & flip & dim glow
+    // Flatten 3D tilt & flip
     rotateX.value = withTiming(0, { duration: dur, easing: easeOut });
     rotateY.value = withTiming(0, { duration: dur, easing: easeOut });
     flipRotation.value = withTiming(0, { duration: dur, easing: easeOut });
-    glowPulse.value = withTiming(0.4, { duration: dur, easing: easeOut });
 
     // Fade out backdrop
     backdropOpacity.value = withTiming(0, { duration: dur, easing: easeOut });
@@ -163,7 +158,6 @@ export function Card3DViewerModal({
     translateX,
     translateY,
     zoomScale,
-    glowPulse,
     finishClose,
   ]);
 
@@ -182,7 +176,6 @@ export function Card3DViewerModal({
       translateY.value = originTranslateY;
       zoomScale.value = originScale;
       backdropOpacity.value = 0;
-      glowPulse.value = 0.8;
 
       // Animate to center with subtle float zoom
       backdropOpacity.value = withTiming(1, {
@@ -192,16 +185,6 @@ export function Card3DViewerModal({
       translateX.value = withSpring(0, { damping: 16, stiffness: 120, mass: 0.8 });
       translateY.value = withSpring(0, { damping: 16, stiffness: 120, mass: 0.8 });
       zoomScale.value = withSpring(1.05, { damping: 16, stiffness: 120, mass: 0.8 });
-
-      // Breathing luminous aura pulsation
-      glowPulse.value = withRepeat(
-        withSequence(
-          withTiming(1.3, { duration: 1600, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.85, { duration: 1600, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      );
     }
   }, [visible, originTranslateX, originTranslateY, originScale]);
 
@@ -326,22 +309,6 @@ export function Card3DViewerModal({
     };
   });
 
-  const ambientGlowAnimatedStyle = useAnimatedStyle(() => {
-    const tiltIntensity = Math.sqrt(rotateX.value * rotateX.value + rotateY.value * rotateY.value);
-    const dynamicScale = interpolate(tiltIntensity, [0, 45], [1.0, 1.15], Extrapolation.CLAMP);
-
-    return {
-      opacity: backdropOpacity.value * 0.85 * glowPulse.value,
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { scale: zoomScale.value * dynamicScale },
-        { rotateX: `${rotateX.value * 0.7}deg` },
-        { rotateY: `${rotateY.value * 0.7}deg` },
-      ],
-    };
-  });
-
   if (!modalRendered || !activeCard) {
     return null;
   }
@@ -381,30 +348,6 @@ export function Card3DViewerModal({
             <View style={styles.frostedTint} pointerEvents="none" />
           </Animated.View>
         </GestureDetector>
-
-        {/* Dynamic Glowing Ambient Halo behind the 3D card */}
-        <Animated.View
-          style={[
-            styles.cardAmbientGlowAura,
-            {
-              backgroundColor: themeColor,
-              shadowColor: themeColor,
-            },
-            ambientGlowAnimatedStyle,
-          ]}
-          pointerEvents="none"
-        />
-        <Animated.View
-          style={[
-            styles.cardAmbientGlowCore,
-            {
-              backgroundColor: themeColor,
-              shadowColor: themeColor,
-            },
-            ambientGlowAnimatedStyle,
-          ]}
-          pointerEvents="none"
-        />
 
         {/* Card centered absolutely at screen center */}
         <GestureDetector gesture={cardGesture}>
@@ -524,28 +467,6 @@ const styles = StyleSheet.create({
   frostedTint: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(10, 14, 23, 0.28)', // Soft translucent tint (keeps underlying dashboard vibrant and visible)
-  },
-  cardAmbientGlowAura: {
-    position: 'absolute',
-    width: VIEWER_CARD_WIDTH * 0.98,
-    height: VIEWER_CARD_HEIGHT * 0.98,
-    borderRadius: 36,
-    opacity: 0.5,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 50,
-    elevation: 25,
-  },
-  cardAmbientGlowCore: {
-    position: 'absolute',
-    width: VIEWER_CARD_WIDTH * 0.85,
-    height: VIEWER_CARD_HEIGHT * 0.85,
-    borderRadius: 30,
-    opacity: 0.35,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.95,
-    shadowRadius: 30,
-    elevation: 20,
   },
   cardWrapper: {
     width: VIEWER_CARD_WIDTH,
