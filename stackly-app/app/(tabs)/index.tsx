@@ -1,20 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
 import { useAppStore } from "@/store/useAppStore";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
+import { NetWorthAnalyticsCard } from "@/components/ui/NetWorthAnalyticsCard";
 import { CenteredCardCarousel, CardItem } from "@/components/ui/StackedCardCarousel";
 import { Card3DViewerModal, CardLayoutRect } from "@/components/ui/Card3DViewerModal";
 import { findPhilippineBank } from "@/data/philippineBanks";
@@ -113,36 +106,6 @@ export default function Home() {
   });
 
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const netWorthTrend = incomeThisMonth - expensesThisMonth;
-  const trendIsPositive = netWorthTrend >= 0;
-
-  // Pulse animation for trend indicator
-  const pulseScale = useSharedValue(1);
-  const pulseOpacity = useSharedValue(0.6);
-
-  useEffect(() => {
-    pulseScale.value = withRepeat(
-      withSequence(
-        withTiming(1.6, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-    pulseOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.6, { duration: 1400, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-  }, []);
-
-  const animatedPulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    opacity: pulseOpacity.value,
-  }));
 
   // Upcoming bills derived from active subscriptions due within 7 days
   const upcomingBills = subscriptions
@@ -208,96 +171,15 @@ export default function Home() {
           />
         }
       >
-        {/* Hero Net Worth Card */}
-        <AnimatedBox
-          delay={30}
-          className="mx-5 mt-3 mb-6 p-6 rounded-[28px] bg-surface-container border border-white/10 shadow-xl overflow-hidden relative"
-        >
-          {/* Ambient Glow Orbs in Background */}
-          <View className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
-          <View className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-secondary/10 blur-2xl pointer-events-none" />
-
-          {/* Header row */}
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-              Total Net Worth
-            </Text>
-            <View className="flex-row items-center gap-1.5 bg-surface-container-highest/80 px-2.5 py-1 rounded-full border border-white/5">
-              <View className="relative w-2 h-2 items-center justify-center">
-                <Animated.View
-                  className={`absolute w-full h-full rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
-                    }`}
-                  style={animatedPulseStyle}
-                />
-                <View
-                  className={`w-1.5 h-1.5 rounded-full ${trendIsPositive ? "bg-secondary" : "bg-error"
-                    }`}
-                />
-              </View>
-              <Text
-                className={`text-[11px] font-bold ${trendIsPositive ? "text-secondary" : "text-error"
-                  }`}
-              >
-                {trendIsPositive ? "+" : "-"}
-                {currencySymbol}
-                {Math.abs(netWorthTrend).toLocaleString("en-US", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </Text>
-            </View>
-          </View>
-
-          {/* Animated Large Net Worth Number */}
-          <View className="my-1">
-            <AnimatedCounter
-              value={totalNetWorth}
-              prefix="$"
-              decimals={2}
-              className="text-4xl font-extrabold text-on-surface tracking-tight"
-            />
-          </View>
-
-          <Text className="text-xs text-on-surface-variant font-medium mt-1">
-            Net cash flow calculated for {monthName}
-          </Text>
-
-          {/* Cash Flow Summary Badges */}
-          <View className="flex-row items-center gap-3 mt-5 pt-4 border-t border-white/5">
-            <View className="flex-1 bg-surface-container-low/90 rounded-2xl p-3 border border-secondary/15 flex-row items-center gap-2.5">
-              <View className="w-8 h-8 rounded-full bg-secondary/15 items-center justify-center">
-                <MaterialIcons name="arrow-downward" size={16} color="#4DE082" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-[11px] font-medium text-on-surface-variant">
-                  Income
-                </Text>
-                <AnimatedCounter
-                  value={incomeThisMonth}
-                  prefix="+$"
-                  decimals={0}
-                  className="text-sm font-bold text-secondary mt-0.5"
-                />
-              </View>
-            </View>
-
-            <View className="flex-1 bg-surface-container-low/90 rounded-2xl p-3 border border-error/15 flex-row items-center gap-2.5">
-              <View className="w-8 h-8 rounded-full bg-error/15 items-center justify-center">
-                <MaterialIcons name="arrow-upward" size={16} color="#FFB4AB" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-[11px] font-medium text-on-surface-variant">
-                  Expenses
-                </Text>
-                <AnimatedCounter
-                  value={expensesThisMonth}
-                  prefix="-$"
-                  decimals={0}
-                  className="text-sm font-bold text-error mt-0.5"
-                />
-              </View>
-            </View>
-          </View>
+        {/* Hero Net Worth Analytics Card (Refined per reference design) */}
+        <AnimatedBox delay={30}>
+          <NetWorthAnalyticsCard
+            totalNetWorth={totalNetWorth}
+            currencySymbol={currencySymbol}
+            transactions={transactions}
+            accounts={accounts}
+            title="Total Net Worth"
+          />
         </AnimatedBox>
 
         {/* Quick Action Buttons */}
