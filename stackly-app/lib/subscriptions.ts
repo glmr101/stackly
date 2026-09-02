@@ -1,4 +1,4 @@
-import { Subscription } from '@/types';
+
 
 export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 

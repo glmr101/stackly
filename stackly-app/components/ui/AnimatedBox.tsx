@@ -105,6 +105,7 @@ export function AnimatedBox({
       // Every other focus gain (initial mount, tab switch, stack navigation) — animate in
       runEntranceAnimation();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused, segments]);
 
   const animatedStyle = useAnimatedStyle(() => ({

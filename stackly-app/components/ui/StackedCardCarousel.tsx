@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  Platform,
   Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -20,8 +19,6 @@ import Animated, {
 import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { MAX_ACCOUNT_COUNT } from '@/constants';
-import { images } from '@/constants/images';
-import { Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CardLayoutRect } from '@/components/ui/Card3DViewerModal';
 import {
@@ -29,7 +26,6 @@ import {
   REALISTIC_CARD_WIDTH,
   REALISTIC_CARD_HEIGHT,
 } from '@/components/ui/RealisticCardFace';
-import { findPhilippineBank } from '@/data/philippineBanks';
 import { MaterialIconName, Account } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -678,7 +674,7 @@ export function CenteredCardCarousel({
         });
       }
     },
-    [onAddCard, onCardPress, router, scrollToIndex, scrollX]
+    [onAddCard, onCardPress, router, scrollToIndex, scrollX, numCards]
   );
 
   return (

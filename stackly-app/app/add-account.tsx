@@ -6,7 +6,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
+  Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -18,11 +18,10 @@ import { BankPickerModal } from "@/components/ui/BankPickerModal";
 import {
   PHILIPPINE_BANKS,
   PhilippineBank,
-  findPhilippineBank,
 } from "@/data/philippineBanks";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { MAX_ACCOUNT_COUNT } from "@/constants";
-import { Alert } from "react-native";
+
 
 type AccountType = Account["type"];
 type CardCategory = "debit" | "credit";

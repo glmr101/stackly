@@ -84,6 +84,7 @@ export function UndoToast({
     return () => {
       clearTimers();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, duration]);
 
   const clearTimers = () => {

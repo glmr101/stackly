@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, LayoutChangeEvent, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -61,6 +61,7 @@ export function SegmentedControl<T extends string = string>({
         mass: 0.7,
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validIndex, segmentWidth]);
 
   const animatedPillStyle = useAnimatedStyle(() => {

@@ -20,7 +20,6 @@ import Svg, {
   Circle,
   Line,
 } from "react-native-svg";
-import { MaterialIcons } from "@expo/vector-icons";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -83,7 +82,7 @@ interface NetWorthAnalyticsCardProps {
   onPeriodChange?: (period: "Monthly" | "Weekly") => void;
 }
 
-const PERIODS: Array<"Monthly" | "Weekly"> = [
+const PERIODS: ("Monthly" | "Weekly")[] = [
   "Monthly",
   "Weekly",
 ];
@@ -374,7 +373,6 @@ export function NetWorthAnalyticsCard({
     const slotWidth = (w - pad * 2) / 7;
     const baselineY = 218;
     const curveMaxHeight = 135;
-    const monthShort = ALL_12_MONTHS[currentMonth].short;
 
     // First pass: collect all day data across all calendar weeks
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
@@ -484,6 +482,7 @@ export function NetWorthAnalyticsCard({
         },
       };
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     containerWidth,
     currentMonth,
@@ -513,6 +512,7 @@ export function NetWorthAnalyticsCard({
       }, 50);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerWidth, currentMonth]);
 
   useEffect(() => {
@@ -528,6 +528,7 @@ export function NetWorthAnalyticsCard({
       }, 50);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerWidth, currentWeekIndex]);
 
   // Layout Handler

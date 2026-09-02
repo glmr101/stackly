@@ -19,22 +19,7 @@ export interface AnimatedCounterProps extends TextProps {
   decimalStyle?: StyleProp<TextStyle>;
 }
 
-/**
- * Calculates the base starting point for screen transitions so that
- * only the hundreds / sub-thousands animate while high-order digits remain stable.
- */
-function getHundredsBase(val: number): number {
-  if (val <= 0) return 0;
-  if (val >= 1000) {
-    // Keep thousands intact, animate the hundreds (e.g. $12,450 -> starts from $12,000)
-    return Math.floor(val / 1000) * 1000;
-  }
-  if (val >= 100) {
-    // For values under 1000, start from the lower hundred (e.g. $450 -> starts from $400)
-    return Math.floor(val / 100) * 100;
-  }
-  return 0;
-}
+
 
 /**
  * Framer Motion easeOutExpo easing curve:

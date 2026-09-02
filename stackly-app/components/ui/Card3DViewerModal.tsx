@@ -75,7 +75,7 @@ export function Card3DViewerModal({
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [showCvv, setShowCvv] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [, setIsExpanded] = useState(false);
   const [showTxList, setShowTxList] = useState(false);
 
   const isExpandedRef = useRef(false);
@@ -281,6 +281,7 @@ export function Card3DViewerModal({
       translateY.value = withSpring(0, { damping: 16, stiffness: 120, mass: 0.8 });
       zoomScale.value = withSpring(1.05, { damping: 16, stiffness: 120, mass: 0.8 });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, originTranslateX, originTranslateY, originScale]);
 
   // Handle Flip Button (via double tap)
@@ -464,17 +465,13 @@ export function Card3DViewerModal({
   const currentCard = activeCard;
   const isCash = currentCard.accountType === 'cash';
   const phBank = findPhilippineBank(currentCard.bankCode || currentCard.institution || currentCard.bankName);
-  const institutionName = currentCard.institution || phBank?.shortName || currentCard.bankName || 'BANK';
   const accountLabel = currentCard.accountName || currentCard.bankName || (isCash ? 'Physical Cash' : 'Main Account');
   const themeColor = currentCard.backgroundColor || phBank?.color || '#1E293B';
-  const isMastercard = currentCard.cardNetwork === 'mastercard' || currentCard.cardType === 'mastercard';
   const rawNumber = currentCard.cardNumber || `•••• ${currentCard.id.replace(/\D/g, '').slice(-4) || '8421'}`;
   const fullMaskedNumber = isCash
     ? `CASH-ID-${currentCard.id.toUpperCase()}`
     : `4820 9182 3746 ${rawNumber.replace(/[^0-9]/g, '').slice(-4) || '8421'}`;
   const securityCvv = '749';
-  const cardHolderName = currentCard.cardHolder || institutionName.toUpperCase() || 'STACKLY USER';
-  const expiryDate = currentCard.expiryDate || '12/29';
 
   // Format transaction date
   const formatTxDate = (dateStr: string) => {

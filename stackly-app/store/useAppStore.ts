@@ -35,7 +35,7 @@ interface AppState {
   addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
   updateSavingsGoal: (id: string, updates: Partial<Omit<SavingsGoal, 'id'>>) => void;
   deleteSavingsGoal: (id: string) => void;
-  addSavingsContribution: (id: string, amount: number) => void;
+
   contributeToSavingsGoal: (goalId: string, accountId: string, amount: number) => boolean;
 
   setCurrency: (currency: Currency) => void;
@@ -182,12 +182,12 @@ export const useAppStore = create<AppState>()(
           budgetGoals: state.budgetGoals.filter((bg) => bg.categoryId !== id),
         })),
 
-      setBudgetGoal: (goal) => 
+      setBudgetGoal: (goal) =>
         set((state) => {
           const exists = state.budgetGoals.find(bg => bg.categoryId === goal.categoryId);
           if (exists) {
             return {
-              budgetGoals: state.budgetGoals.map(bg => 
+              budgetGoals: state.budgetGoals.map(bg =>
                 bg.categoryId === goal.categoryId ? { ...bg, monthlyLimit: goal.monthlyLimit } : bg
               )
             };
@@ -219,13 +219,6 @@ export const useAppStore = create<AppState>()(
       deleteSavingsGoal: (id) =>
         set((state) => ({
           savingsGoals: state.savingsGoals.filter((sg) => sg.id !== id),
-        })),
-
-      addSavingsContribution: (id, amount) =>
-        set((state) => ({
-          savingsGoals: state.savingsGoals.map((sg) =>
-            sg.id === id ? { ...sg, currentAmount: sg.currentAmount + amount } : sg
-          ),
         })),
 
       contributeToSavingsGoal: (goalId, accountId, amount) => {

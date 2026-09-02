@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Pressable,
   Alert,
-  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";

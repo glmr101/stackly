@@ -32,7 +32,7 @@ export default function RootLayout() {
     } else if (user && inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [user, isLoading, segments, rootNavigationState?.key]);
+  }, [user, isLoading, segments, rootNavigationState?.key, router]);
 
   useEffect(() => {
     if (!isLoading) {

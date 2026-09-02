@@ -34,6 +34,7 @@ export function Toggle({
       damping: 18,
       stiffness: 240,
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const animatedThumbStyle = useAnimatedStyle(() => {

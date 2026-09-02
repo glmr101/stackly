@@ -17,7 +17,7 @@ import { AnimatedBox } from "@/components/ui/AnimatedBox";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const HERO_CARD_WIDTH = SCREEN_WIDTH - 40; // matches px-5 / mx-5
+
 
 function formatRemainingTime(targetDateStr?: string): string | null {
   if (!targetDateStr) return null;
@@ -98,12 +98,6 @@ export default function Budgets() {
   const savingsGoalsCount = savingsGoals.length;
   const averageSavingsCurrent =
     savingsGoalsCount > 0 ? totalSavingsCurrent / savingsGoalsCount : 0;
-  const averageSavingsTarget =
-    savingsGoalsCount > 0 ? totalSavingsTarget / savingsGoalsCount : 0;
-  const totalSavingsRemaining = Math.max(
-    totalSavingsTarget - totalSavingsCurrent,
-    0
-  );
   const overallSavingsPercentage =
     totalSavingsTarget > 0
       ? Math.min((totalSavingsCurrent / totalSavingsTarget) * 100, 100)
@@ -473,6 +467,21 @@ export default function Budgets() {
                         maximumFractionDigits: 2,
                       })}
                     </Text>
+
+                    {/* Budget Pace Warning */}
+                    {(() => {
+                      const today = new Date();
+                      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                      const timeElapsedPct = (today.getDate() / daysInMonth) * 100;
+                      if (!isOver && percentage > timeElapsedPct + 15) {
+                        return (
+                          <Text className="text-xs font-medium mt-0.5" style={{ color: "#FBBF24" }}>
+                            Spending faster than usual this month
+                          </Text>
+                        );
+                      }
+                      return null;
+                    })()}
                   </View>
                 </ScaleButton>
               );
@@ -636,6 +645,35 @@ export default function Budgets() {
                           ? "Target reached! Goal is fully funded."
                           : `${currencySymbol}${(target - current).toLocaleString()} remaining to save`}
                       </Text>
+
+                      {/* Required Pace */}
+                      {goal.targetDate && !isComplete && (() => {
+                        const targetDate = new Date(goal.targetDate);
+                        const today = new Date();
+                        const diffMs = targetDate.getTime() - today.getTime();
+                        const diffDays = Math.max(diffMs / (1000 * 60 * 60 * 24), 0);
+                        const remaining = target - current;
+
+                        if (diffDays <= 0) return null;
+
+                        const monthsRemaining = diffDays / 30.4375;
+                        if (monthsRemaining >= 1) {
+                          const perMonth = Math.round(remaining / monthsRemaining);
+                          return (
+                            <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                              Save {currencySymbol}{perMonth.toLocaleString()}/month to reach this
+                            </Text>
+                          );
+                        } else {
+                          const weeksRemaining = Math.max(diffDays / 7, 1);
+                          const perWeek = Math.round(remaining / weeksRemaining);
+                          return (
+                            <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                              Save {currencySymbol}{perWeek.toLocaleString()} this week to reach this
+                            </Text>
+                          );
+                        }
+                      })()}
                     </View>
                   </View>
 

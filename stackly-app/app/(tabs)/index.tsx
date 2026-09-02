@@ -30,7 +30,6 @@ export default function Home() {
 
   const currencySymbol = currency?.symbol || "₱";
   const now = new Date();
-  const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   const monthName = now.toLocaleDateString("en-US", { month: "long" });
 
@@ -91,19 +90,7 @@ export default function Home() {
     }, 600);
   }, []);
 
-  let incomeThisMonth = 0;
-  let expensesThisMonth = 0;
 
-  transactions.forEach((tx) => {
-    const txDate = new Date(tx.date);
-    if (
-      txDate.getMonth() === currentMonth &&
-      txDate.getFullYear() === currentYear
-    ) {
-      if (tx.type === "income") incomeThisMonth += tx.amount;
-      if (tx.type === "expense") expensesThisMonth += tx.amount;
-    }
-  });
 
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 

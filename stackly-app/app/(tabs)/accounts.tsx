@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link } from "expo-router";
@@ -21,7 +21,7 @@ export default function Accounts() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedViewerCard, setSelectedViewerCard] = useState<CardItem | null>(null);
-  const [selectedViewerLayout, setSelectedViewerLayout] = useState<CardLayoutRect | null>(null);
+  const [selectedViewerLayout] = useState<CardLayoutRect | null>(null);
 
   const totalNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   const totalLiquid = accounts
