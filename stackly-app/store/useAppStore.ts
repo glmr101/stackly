@@ -14,6 +14,7 @@ interface AppState {
   savingsGoals: SavingsGoal[];
   currency: Currency;
   region: Region;
+  biometricLockEnabled: boolean;
 
   addAccount: (account: Omit<Account, 'id'>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -41,6 +42,7 @@ interface AppState {
   setCurrency: (currency: Currency) => void;
   setRegion: (region: Region) => void;
   setRegionAndCurrency: (region: Region, currency: Currency) => void;
+  setBiometricLockEnabled: (enabled: boolean) => void;
 
   reset: () => void;
   resetToDemo: () => void;
@@ -60,6 +62,7 @@ export const useAppStore = create<AppState>()(
       currency: DEFAULT_CURRENCY,
       region: DEFAULT_REGION,
       lastDeletedSubscription: null,
+      biometricLockEnabled: false,
 
       addAccount: (account) =>
         set((state) => ({
@@ -262,6 +265,7 @@ export const useAppStore = create<AppState>()(
       setCurrency: (currency) => set({ currency }),
       setRegion: (region) => set({ region, currency: region.defaultCurrency }),
       setRegionAndCurrency: (region, currency) => set({ region, currency }),
+      setBiometricLockEnabled: (enabled) => set({ biometricLockEnabled: enabled }),
 
       reset: () =>
         set((state) => ({
@@ -273,6 +277,7 @@ export const useAppStore = create<AppState>()(
           savingsGoals: [],
           currency: state.currency,
           region: state.region,
+          biometricLockEnabled: state.biometricLockEnabled,
         })),
 
       resetToDemo: () =>
@@ -285,6 +290,7 @@ export const useAppStore = create<AppState>()(
           savingsGoals: MOCK_SAVINGS_GOALS,
           currency: state.currency,
           region: state.region,
+          biometricLockEnabled: state.biometricLockEnabled,
         })),
 
       restoreSnapshot: (snapshot) =>

@@ -67,6 +67,7 @@ export default function Settings() {
       subtitle: "Push alerts for upcoming bills",
       icon: "notifications",
       color: "#4DE082",
+      badge: "Coming Soon",
     },
     {
       id: "currency",
@@ -91,6 +92,7 @@ export default function Settings() {
       subtitle: "CSV export, cloud backup",
       icon: "cloud-download",
       color: "#38BDF8",
+      badge: "Coming Soon",
     },
     {
       id: "reset",
@@ -298,50 +300,68 @@ export default function Settings() {
               General Preferences
             </Text>
             <View className="bg-surface-container rounded-[24px] overflow-hidden border border-outline-variant/30 shadow-sm">
-              {generalSettings.map((item, index) => (
-                <ScaleButton
-                  key={item.id}
-                  activeScale={0.98}
-                  onPress={() => {
-                    if (item.id === "currency") {
-                      router.push("/currency-region" as any);
-                    }
-                  }}
-                  className={`flex-row items-center justify-between p-4 ${
-                    index !== generalSettings.length - 1
-                      ? "border-b border-outline-variant/20"
-                      : ""
-                  }`}
-                >
-                  <View className="flex-row items-center gap-3.5">
-                    <View
-                      className="w-10 h-10 rounded-xl items-center justify-center"
-                      style={{ backgroundColor: `${item.color || "#B2C5FF"}20` }}
-                    >
+              {generalSettings.map((item, index) => {
+                const isDisabled = !!item.badge;
+                return (
+                  <ScaleButton
+                    key={item.id}
+                    activeScale={isDisabled ? 1 : 0.98}
+                    disabled={isDisabled}
+                    onPress={() => {
+                      if (item.id === "currency") {
+                        router.push("/currency-region" as any);
+                      } else if (item.id === "profile") {
+                        router.push("/account-profile" as any);
+                      }
+                    }}
+                    className={`flex-row items-center justify-between p-4 ${
+                      index !== generalSettings.length - 1
+                        ? "border-b border-outline-variant/20"
+                        : ""
+                    }`}
+                    style={{ opacity: isDisabled ? 0.5 : 1 }}
+                  >
+                    <View className="flex-row items-center gap-3.5">
+                      <View
+                        className="w-10 h-10 rounded-xl items-center justify-center"
+                        style={{ backgroundColor: `${item.color || "#B2C5FF"}20` }}
+                      >
+                        <MaterialIcons
+                          name={item.icon}
+                          size={20}
+                          color={item.color || "#B2C5FF"}
+                        />
+                      </View>
+                      <View>
+                        <View className="flex-row items-center gap-2">
+                          <Text className="text-sm font-bold text-on-surface">
+                            {item.title}
+                          </Text>
+                          {item.badge && (
+                            <View className="bg-primary/20 px-2 py-0.5 rounded-full border border-primary/30">
+                              <Text className="text-[9px] font-bold text-primary uppercase">
+                                {item.badge}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        {item.subtitle && (
+                          <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                            {item.subtitle}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {!isDisabled && (
                       <MaterialIcons
-                        name={item.icon}
+                        name="chevron-right"
                         size={20}
-                        color={item.color || "#B2C5FF"}
+                        color="#8D909F"
                       />
-                    </View>
-                    <View>
-                      <Text className="text-sm font-bold text-on-surface">
-                        {item.title}
-                      </Text>
-                      {item.subtitle && (
-                        <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                          {item.subtitle}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={20}
-                    color="#8D909F"
-                  />
-                </ScaleButton>
-              ))}
+                    )}
+                  </ScaleButton>
+                );
+              })}
             </View>
           </View>
 
@@ -351,50 +371,68 @@ export default function Settings() {
               Security & Data
             </Text>
             <View className="bg-surface-container rounded-[24px] overflow-hidden border border-outline-variant/30 shadow-sm">
-              {securitySettings.map((item, index) => (
-                <ScaleButton
-                  key={item.id}
-                  activeScale={0.98}
-                  onPress={() => {
-                    if (item.id === "reset") {
-                      handleResetPress();
-                    }
-                  }}
-                  className={`flex-row items-center justify-between p-4 ${
-                    index !== securitySettings.length - 1
-                      ? "border-b border-outline-variant/20"
-                      : ""
-                  }`}
-                >
-                  <View className="flex-row items-center gap-3.5">
-                    <View
-                      className="w-10 h-10 rounded-xl items-center justify-center"
-                      style={{ backgroundColor: `${item.color || "#B2C5FF"}20` }}
-                    >
+              {securitySettings.map((item, index) => {
+                const isDisabled = !!item.badge;
+                return (
+                  <ScaleButton
+                    key={item.id}
+                    activeScale={isDisabled ? 1 : 0.98}
+                    disabled={isDisabled}
+                    onPress={() => {
+                      if (item.id === "reset") {
+                        handleResetPress();
+                      } else if (item.id === "security") {
+                        router.push("/security-biometrics" as any);
+                      }
+                    }}
+                    className={`flex-row items-center justify-between p-4 ${
+                      index !== securitySettings.length - 1
+                        ? "border-b border-outline-variant/20"
+                        : ""
+                    }`}
+                    style={{ opacity: isDisabled ? 0.5 : 1 }}
+                  >
+                    <View className="flex-row items-center gap-3.5">
+                      <View
+                        className="w-10 h-10 rounded-xl items-center justify-center"
+                        style={{ backgroundColor: `${item.color || "#B2C5FF"}20` }}
+                      >
+                        <MaterialIcons
+                          name={item.icon}
+                          size={20}
+                          color={item.color || "#B2C5FF"}
+                        />
+                      </View>
+                      <View>
+                        <View className="flex-row items-center gap-2">
+                          <Text className="text-sm font-bold text-on-surface">
+                            {item.title}
+                          </Text>
+                          {item.badge && (
+                            <View className="bg-primary/20 px-2 py-0.5 rounded-full border border-primary/30">
+                              <Text className="text-[9px] font-bold text-primary uppercase">
+                                {item.badge}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        {item.subtitle && (
+                          <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
+                            {item.subtitle}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {!isDisabled && (
                       <MaterialIcons
-                        name={item.icon}
+                        name="chevron-right"
                         size={20}
-                        color={item.color || "#B2C5FF"}
+                        color="#8D909F"
                       />
-                    </View>
-                    <View>
-                      <Text className="text-sm font-bold text-on-surface">
-                        {item.title}
-                      </Text>
-                      {item.subtitle && (
-                        <Text className="text-xs text-on-surface-variant font-medium mt-0.5">
-                          {item.subtitle}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={20}
-                    color="#8D909F"
-                  />
-                </ScaleButton>
-              ))}
+                    )}
+                  </ScaleButton>
+                );
+              })}
             </View>
           </View>
 
