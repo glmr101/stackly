@@ -158,6 +158,15 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="edit-account"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 280,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
           name="add-subscription"
           options={{
             presentation: "modal",

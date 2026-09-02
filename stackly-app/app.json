@@ -43,7 +43,8 @@
         {
           "faceIDPermission": "Stackly uses Face ID to protect your financial data with biometric app lock."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

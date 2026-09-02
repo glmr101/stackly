@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -123,6 +123,14 @@ export default function Home() {
       };
     });
 
+  // Only include transactions for accounts that currently exist so the chart updates upon account deletion
+  const validTransactions = useMemo(() => {
+    const activeAccountIds = new Set(accounts.map((a) => a.id));
+    return transactions.filter(
+      (tx) => activeAccountIds.has(tx.accountId)
+    );
+  }, [transactions, accounts]);
+
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Top Navigation Bar */}
@@ -163,7 +171,7 @@ export default function Home() {
           <NetWorthAnalyticsCard
             totalNetWorth={totalNetWorth}
             currencySymbol={currencySymbol}
-            transactions={transactions}
+            transactions={validTransactions}
             accounts={accounts}
             title="Total Net Worth"
           />

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppStore } from "@/store/useAppStore";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ScaleButton } from "@/components/ui/ScaleButton";
@@ -47,6 +48,8 @@ export default function AddTransaction() {
   );
   const [merchant, setMerchant] = useState("");
   const [note, setNote] = useState("");
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
 
   const availableCategories =
@@ -80,7 +83,7 @@ export default function AddTransaction() {
         merchant.trim() ||
         (type === "transfer" ? "Transfer" : "Quick Transaction"),
       note: note.trim(),
-      date: new Date().toISOString(),
+      date: date.toISOString(),
     });
 
     router.back();
@@ -361,6 +364,56 @@ export default function AddTransaction() {
                 style={{ minHeight: 48, textAlignVertical: "top" }}
               />
             </View>
+
+            {/* Date Input */}
+            <View className="bg-surface-container rounded-2xl px-4 py-2 flex-row items-center gap-3 border border-outline-variant/30">
+              <MaterialIcons name="calendar-today" size={20} color="#C3C6D6" />
+              {Platform.OS === "ios" ? (
+                <View className="flex-1 flex-row items-center justify-between">
+                  <Text className="text-sm text-on-surface-variant font-medium ml-1">
+                    Date
+                  </Text>
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) setDate(selectedDate);
+                    }}
+                    themeVariant="dark"
+                  />
+                </View>
+              ) : (
+                <ScaleButton
+                  activeScale={0.97}
+                  onPress={() => setShowDatePicker(true)}
+                  className="flex-1 py-2"
+                >
+                  <Text className="text-sm text-on-surface font-medium ml-1">
+                    {date.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </ScaleButton>
+              )}
+            </View>
+
+            {Platform.OS === "android" && showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    setDate(selectedDate);
+                  }
+                }}
+              />
+            )}
           </View>
 
           {/* Save Button */}

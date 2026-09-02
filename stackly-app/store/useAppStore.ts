@@ -17,6 +17,12 @@ interface AppState {
   biometricLockEnabled: boolean;
 
   addAccount: (account: Omit<Account, 'id'>) => void;
+  updateAccount: (id: string, updates: Partial<Omit<Account, 'id'>>) => void;
+  deleteAccount: (id: string) => void;
+  lastDeletedAccount: Account | null;
+  restoreAccount: (account: Account) => void;
+  restoreLastDeletedAccount: () => void;
+  clearLastDeletedAccount: () => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   lastDeletedSubscription: Subscription | null;
   addSubscription: (subscription: Omit<Subscription, 'id'>) => void;
@@ -61,6 +67,7 @@ export const useAppStore = create<AppState>()(
       savingsGoals: MOCK_SAVINGS_GOALS,
       currency: DEFAULT_CURRENCY,
       region: DEFAULT_REGION,
+      lastDeletedAccount: null,
       lastDeletedSubscription: null,
       biometricLockEnabled: false,
 
@@ -71,6 +78,50 @@ export const useAppStore = create<AppState>()(
             { ...account, id: `a${Date.now()}` },
           ],
         })),
+
+      updateAccount: (id, updates) =>
+        set((state) => ({
+          accounts: state.accounts.map((acc) =>
+            acc.id === id ? { ...acc, ...updates } : acc
+          ),
+        })),
+
+      deleteAccount: (id) =>
+        set((state) => {
+          const accToDelete = state.accounts.find((a) => a.id === id) || null;
+          return {
+            lastDeletedAccount: accToDelete,
+            accounts: state.accounts.filter((acc) => acc.id !== id),
+          };
+        }),
+
+      restoreAccount: (account) =>
+        set((state) => {
+          const exists = state.accounts.some((a) => a.id === account.id);
+          if (exists) return state;
+          return {
+            accounts: [account, ...state.accounts],
+          };
+        }),
+
+      restoreLastDeletedAccount: () =>
+        set((state) => {
+          if (!state.lastDeletedAccount) return state;
+          const exists = state.accounts.some(
+            (a) => a.id === state.lastDeletedAccount!.id
+          );
+          if (exists) {
+            return { lastDeletedAccount: null };
+          }
+          return {
+            accounts: [state.lastDeletedAccount, ...state.accounts],
+            lastDeletedAccount: null,
+          };
+        }),
+
+      clearLastDeletedAccount: () =>
+        set({ lastDeletedAccount: null }),
+
 
       addTransaction: (transaction) =>
         set((state) => {

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { Swipeable } from "react-native-gesture-handler";
 import { useAppStore } from "@/store/useAppStore";
 import { Account } from "@/types";
 import { Card3DViewerModal, CardLayoutRect } from "@/components/ui/Card3DViewerModal";
@@ -11,14 +12,19 @@ import { findPhilippineBank } from "@/data/philippineBanks";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ScaleButton } from "@/components/ui/ScaleButton";
 import { AnimatedBox } from "@/components/ui/AnimatedBox";
+import { UndoToast } from "@/components/ui/UndoToast";
 
 export default function Accounts() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const accounts = useAppStore((state) => state.accounts);
   const currency = useAppStore((state) => state.currency);
+  const deleteAccount = useAppStore((state) => state.deleteAccount);
+  const lastDeletedAccount = useAppStore((state) => state.lastDeletedAccount);
+  const restoreLastDeletedAccount = useAppStore((state) => state.restoreLastDeletedAccount);
+  const clearLastDeletedAccount = useAppStore((state) => state.clearLastDeletedAccount);
   const currencySymbol = currency?.symbol || "$";
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedViewerCard, setSelectedViewerCard] = useState<CardItem | null>(null);
   const [selectedViewerLayout] = useState<CardLayoutRect | null>(null);
@@ -37,9 +43,42 @@ export default function Accounts() {
     .filter((acc) => acc.type === "investment")
     .reduce((sum, acc) => sum + acc.balance, 0);
 
-  const toggleDetails = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
+  const confirmDelete = (account: Account) => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete this account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deleteAccount(account.id) }
+      ]
+    );
   };
+
+  const renderRightActions = (account: Account) => (
+    <TouchableOpacity
+      className="w-[72px] h-full bg-red-500/15 items-center justify-center rounded-[24px] ml-2 border border-red-500/30"
+      onPress={() => confirmDelete(account)}
+    >
+      <MaterialIcons name="delete" size={24} color="#EF4444" />
+    </TouchableOpacity>
+  );
+
+  const renderLeftActions = (account: Account) => (
+    <View className="flex-row items-center h-full mr-2 gap-2">
+      <TouchableOpacity
+        className="w-[60px] h-full bg-orange-500/15 items-center justify-center rounded-[24px] border border-orange-500/25"
+        onPress={() => router.push(`/edit-account?id=${account.id}` as any)}
+      >
+        <MaterialIcons name="edit" size={22} color="#FDBA74" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        className="w-[60px] h-full bg-surface-container-highest items-center justify-center rounded-[24px] border border-outline-variant/30"
+        onPress={() => router.push(`/transactions` as any)}
+      >
+        <MaterialIcons name="history" size={22} color="#C3C6D6" />
+      </TouchableOpacity>
+    </View>
+  );
 
   const mapAccountToCardItem = (acc: Account): CardItem => {
     const phBank = findPhilippineBank(acc.bankCode || acc.institution || acc.name);
@@ -87,7 +126,7 @@ export default function Accounts() {
       {/* Header */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
         <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
-          Accounts & Assets
+          Accounts & Cards
         </Text>
       </AnimatedBox>
 
@@ -180,16 +219,14 @@ export default function Accounts() {
                   key={f.value}
                   activeScale={0.92}
                   onPress={() => setSelectedFilter(f.value)}
-                  className={`px-4 py-2 rounded-full border ${
-                    isSelected
+                  className={`px-4 py-2 rounded-full border ${isSelected
                       ? "bg-primary border-primary"
                       : "bg-surface-container border-outline-variant/30"
-                  }`}
+                    }`}
                 >
                   <Text
-                    className={`text-xs font-bold ${
-                      isSelected ? "text-on-primary" : "text-on-surface-variant"
-                    }`}
+                    className={`text-xs font-bold ${isSelected ? "text-on-primary" : "text-on-surface-variant"
+                      }`}
                   >
                     {f.label}
                   </Text>
@@ -208,108 +245,63 @@ export default function Accounts() {
           </View>
 
           {filteredAccounts.map((account) => {
-            const isExpanded = expandedId === account.id;
             const isPrimary =
               account.type === "bank" || account.type === "e-wallet";
 
             return (
-              <View
+              <Swipeable
                 key={account.id}
-                className="bg-surface-container rounded-[24px] border border-outline-variant/30 overflow-hidden shadow-sm"
+                renderRightActions={() => renderRightActions(account)}
+                renderLeftActions={() => renderLeftActions(account)}
+                containerStyle={{ overflow: "visible" }}
+                childrenContainerStyle={{ borderRadius: 24 }}
               >
-                <ScaleButton
-                  activeScale={0.97}
-                  className="p-4 flex-row items-center justify-between"
-                  onPress={() => toggleDetails(account.id)}
-                >
-                  <View className="flex-row items-center gap-3.5">
-                    <View
-                      className={`w-12 h-12 rounded-2xl items-center justify-center ${
-                        isPrimary ? "bg-primary/20" : "bg-secondary/20"
-                      }`}
-                    >
-                      <MaterialIcons
-                        name={account.icon as any}
-                        size={24}
-                        color={isPrimary ? "#B2C5FF" : "#4DE082"}
-                      />
-                    </View>
-                    <View>
-                      <Text className="text-sm font-bold text-on-surface">
-                        {account.name}
-                      </Text>
-                      <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
-                        <Text className="text-xs text-on-surface-variant font-medium">
-                          {account.institution}
+                <View className="bg-surface-container rounded-[24px] border border-outline-variant/30 overflow-hidden shadow-sm">
+                  <View className="p-4 flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-3.5">
+                      <View
+                        className={`w-12 h-12 rounded-2xl items-center justify-center ${isPrimary ? "bg-primary/20" : "bg-secondary/20"
+                          }`}
+                      >
+                        <MaterialIcons
+                          name={account.icon as any}
+                          size={24}
+                          color={isPrimary ? "#B2C5FF" : "#4DE082"}
+                        />
+                      </View>
+                      <View>
+                        <Text className="text-sm font-bold text-on-surface">
+                          {account.name}
                         </Text>
-                        <View className="w-1 h-1 rounded-full bg-outline-variant" />
-                        <View className="bg-surface-container-highest px-2 py-0.5 rounded-md">
-                          <Text className="text-[10px] font-semibold uppercase text-primary">
-                            {account.type === "cash" || account.type === "investment"
-                              ? account.type
-                              : account.cardCategory
-                              ? `${account.cardCategory}${account.cardNetwork ? ` • ${account.cardNetwork}` : ""}`
-                              : account.type}
+                        <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
+                          <Text className="text-xs text-on-surface-variant font-medium">
+                            {account.institution}
                           </Text>
+                          <View className="w-1 h-1 rounded-full bg-outline-variant" />
+                          <View className="bg-surface-container-highest px-2 py-0.5 rounded-md">
+                            <Text className="text-[10px] font-semibold uppercase text-primary">
+                              {account.type === "cash" || account.type === "investment"
+                                ? account.type
+                                : account.cardCategory
+                                  ? `${account.cardCategory}${account.cardNetwork ? ` • ${account.cardNetwork}` : ""}`
+                                  : account.type}
+                            </Text>
+                          </View>
                         </View>
                       </View>
                     </View>
-                  </View>
 
-                  <View className="items-end">
-                    <AnimatedCounter
-                      value={account.balance}
-                      prefix={currencySymbol}
-                      decimals={2}
-                      className="text-base font-extrabold text-on-surface"
-                    />
-                    <MaterialIcons
-                      name={isExpanded ? "expand-less" : "expand-more"}
-                      size={20}
-                      color="#C3C6D6"
-                      style={{ marginTop: 2 }}
-                    />
+                    <View className="items-end justify-center">
+                      <AnimatedCounter
+                        value={account.balance}
+                        prefix={currencySymbol}
+                        decimals={2}
+                        className="text-base font-extrabold text-on-surface"
+                      />
+                    </View>
                   </View>
-                </ScaleButton>
-
-                {/* Collapsible Action Drawer */}
-                {isExpanded && (
-                  <View className="px-4 pb-4 pt-2 bg-surface-container-low/70 border-t border-outline-variant/20 flex-row gap-2.5">
-                    <Link href={"/add-transaction" as any} asChild>
-                      <ScaleButton
-                        activeScale={0.92}
-                        className="flex-1 py-2.5 rounded-xl bg-primary/15 border border-primary/25 items-center justify-center flex-row gap-1.5"
-                      >
-                        <MaterialIcons name="swap-horiz" size={16} color="#B2C5FF" />
-                        <Text className="text-xs font-bold text-primary">
-                          Transfer
-                        </Text>
-                      </ScaleButton>
-                    </Link>
-                    <ScaleButton
-                      activeScale={0.92}
-                      onPress={() => setSelectedViewerCard(mapAccountToCardItem(account))}
-                      className="flex-1 py-2.5 rounded-xl bg-purple-500/15 border border-purple-500/25 items-center justify-center flex-row gap-1.5"
-                    >
-                      <MaterialIcons name="3d-rotation" size={16} color="#C084FC" />
-                      <Text className="text-xs font-bold text-purple-300">
-                        3D View
-                      </Text>
-                    </ScaleButton>
-                    <Link href={"/transactions" as any} asChild>
-                      <ScaleButton
-                        activeScale={0.92}
-                        className="flex-1 py-2.5 rounded-xl bg-surface-container-highest border border-outline-variant/30 items-center justify-center flex-row gap-1.5"
-                      >
-                        <MaterialIcons name="history" size={16} color="#C3C6D6" />
-                        <Text className="text-xs font-bold text-on-surface">
-                          History
-                        </Text>
-                      </ScaleButton>
-                    </Link>
-                  </View>
-                )}
-              </View>
+                </View>
+              </Swipeable>
             );
           })}
 
@@ -354,6 +346,15 @@ export default function Accounts() {
         sourceLayout={selectedViewerLayout}
         currencySymbol={currencySymbol}
         onClose={() => setSelectedViewerCard(null)}
+      />
+
+      {/* Undo Toast Notification */}
+      <UndoToast
+        visible={!!lastDeletedAccount}
+        message={`"${lastDeletedAccount?.name || 'Account'}" deleted`}
+        duration={5000}
+        onUndo={restoreLastDeletedAccount}
+        onDismiss={clearLastDeletedAccount}
       />
     </View>
   );

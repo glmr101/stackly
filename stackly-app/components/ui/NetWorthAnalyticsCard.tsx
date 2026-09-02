@@ -42,7 +42,8 @@ interface MonthDataPoint {
   income: number;
   expenses: number;
   overall: number; // Monthly cash flow
-  barHeightRatio: number; // 0.2 to 1.0
+  incomeRatio: number; // 0.05 to 1.0
+  expenseRatio: number; // 0.05 to 1.0
   isCurrentRealTimeMonth: boolean;
 }
 
@@ -55,7 +56,8 @@ interface WeeklyDayPoint {
   income: number;
   expenses: number;
   overall: number; // Daily cash flow
-  ratio: number; // 0.15 .. 0.95
+  incomeRatio: number; // 0.05 .. 0.95
+  expenseRatio: number; // 0.05 .. 0.95
   isToday: boolean;
 }
 
@@ -64,7 +66,13 @@ interface WeekData {
   label: string; // "Week 1"
   dateRange: string; // "Sep 1 - 7"
   days: WeeklyDayPoint[];
-  spline: {
+  incomeSpline: {
+    points: { x: number; y: number; data: WeeklyDayPoint }[];
+    linePath: string;
+    areaPath: string;
+    baselineY: number;
+  };
+  expenseSpline: {
     points: { x: number; y: number; data: WeeklyDayPoint }[];
     linePath: string;
     areaPath: string;
@@ -113,9 +121,9 @@ const WEEK_DAYS = [
 ];
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const DEFAULT_CONTAINER_WIDTH = SCREEN_WIDTH - 80;
-const TRACK_HEIGHT = 136;
-const BAR_WIDTH = 45;
+const DEFAULT_CONTAINER_WIDTH = SCREEN_WIDTH - 56;
+const TRACK_HEIGHT = 145;
+const BAR_WIDTH = 80;
 
 /**
  * Builds a smooth Catmull-Rom cubic Bézier spline across coordinate points
@@ -200,7 +208,7 @@ export function NetWorthAnalyticsCard({
 
   // Monthly State: Selected month index across 0..11, defaults strictly to current real-time month
   const [currentMonthlyPage, setCurrentMonthlyPage] = useState<number>(() =>
-    currentMonth >= 6 ? 1 : 0
+    Math.floor(currentMonth / 4)
   );
   const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(currentMonth);
 
@@ -211,7 +219,7 @@ export function NetWorthAnalyticsCard({
 
   // Monthly Scroll Shared Value & Handler
   const monthlyScrollX = useSharedValue(
-    currentMonth >= 6 ? DEFAULT_CONTAINER_WIDTH : 0
+    Math.floor(currentMonth / 4) * DEFAULT_CONTAINER_WIDTH
   );
 
   const monthlyScrollHandler = useAnimatedScrollHandler({
@@ -231,38 +239,28 @@ export function NetWorthAnalyticsCard({
     },
   });
 
-  // Real-time Monthly 2-Dot Animations
+  // Real-time Monthly 4-Dot Animations
   const monthDot0Style = useAnimatedStyle(() => {
     const w = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-    const width = interpolate(
-      monthlyScrollX.value,
-      [0, w],
-      [20, 6],
-      Extrapolation.CLAMP
-    );
-    const opacity = interpolate(
-      monthlyScrollX.value,
-      [0, w],
-      [1, 0.3],
-      Extrapolation.CLAMP
-    );
+    const dist = Math.abs(monthlyScrollX.value - 0 * w);
+    const width = interpolate(dist, [0, w], [20, 6], Extrapolation.CLAMP);
+    const opacity = interpolate(dist, [0, w], [1, 0.35], Extrapolation.CLAMP);
     return { width, opacity };
   });
 
   const monthDot1Style = useAnimatedStyle(() => {
     const w = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-    const width = interpolate(
-      monthlyScrollX.value,
-      [0, w],
-      [6, 20],
-      Extrapolation.CLAMP
-    );
-    const opacity = interpolate(
-      monthlyScrollX.value,
-      [0, w],
-      [0.3, 1],
-      Extrapolation.CLAMP
-    );
+    const dist = Math.abs(monthlyScrollX.value - 1 * w);
+    const width = interpolate(dist, [0, w], [20, 6], Extrapolation.CLAMP);
+    const opacity = interpolate(dist, [0, w], [1, 0.35], Extrapolation.CLAMP);
+    return { width, opacity };
+  });
+
+  const monthDot2Style = useAnimatedStyle(() => {
+    const w = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
+    const dist = Math.abs(monthlyScrollX.value - 2 * w);
+    const width = interpolate(dist, [0, w], [20, 6], Extrapolation.CLAMP);
+    const opacity = interpolate(dist, [0, w], [1, 0.35], Extrapolation.CLAMP);
     return { width, opacity };
   });
 
@@ -346,23 +344,22 @@ export function NetWorthAnalyticsCard({
         income,
         expenses,
         overall,
-        barHeightRatio: 0, // computed in second pass
+        incomeRatio: 0,
+        expenseRatio: 0,
         isCurrentRealTimeMonth: mIdx === currentMonth,
       };
     });
 
-    // Second pass: derive bar heights proportionally from total activity
+    // Second pass: derive bar heights proportionally from highest single activity
     const maxActivity = Math.max(
-      ...rawMonths.map((m) => m.income + m.expenses),
+      ...rawMonths.map((m) => Math.max(m.income, m.expenses)),
       1 // prevent division by zero
     );
 
     return rawMonths.map((m) => ({
       ...m,
-      barHeightRatio:
-        m.income + m.expenses > 0
-          ? Math.max(0.05, (m.income + m.expenses) / maxActivity)
-          : 0, // 0 height ratio for zero activity
+      incomeRatio: m.income > 0 ? Math.max(0.05, m.income / maxActivity) : 0,
+      expenseRatio: m.expenses > 0 ? Math.max(0.05, m.expenses / maxActivity) : 0,
     }));
   }, [transactions, currentMonth, currentYear]);
 
@@ -377,7 +374,7 @@ export function NetWorthAnalyticsCard({
     // First pass: collect all day data across all calendar weeks
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
     const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    const startDayOffset = (firstDayOfMonth.getDay() + 6) % 7; 
+    const startDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
     const totalDaysInMonth = lastDayOfMonth.getDate();
     const numWeeks = Math.ceil((totalDaysInMonth + startDayOffset) / 7);
 
@@ -431,11 +428,11 @@ export function NetWorthAnalyticsCard({
       const actualStartMonth = ALL_12_MONTHS[actualStartDayDate.getMonth()].short;
       const actualEndDayDate = new Date(currentYear, currentMonth, 1 - startDayOffset + wIdx * 7 + 6);
       const actualEndMonth = ALL_12_MONTHS[actualEndDayDate.getMonth()].short;
-      
+
       const startDateNum = actualStartDayDate.getDate();
       const endDateNum = actualEndDayDate.getDate();
-      
-      const dateRange = actualStartMonth === actualEndMonth 
+
+      const dateRange = actualStartMonth === actualEndMonth
         ? `${actualStartMonth} ${startDateNum} - ${endDateNum}`
         : `${actualStartMonth} ${startDateNum} - ${actualEndMonth} ${endDateNum}`;
       const label = `Week ${wIdx + 1}`;
@@ -446,7 +443,7 @@ export function NetWorthAnalyticsCard({
     // Find global max daily activity for proportional curve heights
     const maxDayActivity = Math.max(
       ...allWeeksRaw.flatMap((wk) =>
-        wk.days.map((d) => d.income + d.expenses)
+        wk.days.map((d) => Math.max(d.income, d.expenses))
       ),
       1 // prevent division by zero
     );
@@ -455,34 +452,51 @@ export function NetWorthAnalyticsCard({
     return allWeeksRaw.map((wk) => {
       const daysWithRatio = wk.days.map((d) => ({
         ...d,
-        ratio:
-          d.income + d.expenses > 0
-            ? Math.max(0.12, (d.income + d.expenses) / maxDayActivity * 0.9)
+        incomeRatio:
+          d.income > 0
+            ? Math.max(0.12, (d.income / maxDayActivity) * 0.9)
             : 0.05, // minimal baseline for days with no activity
+        expenseRatio:
+          d.expenses > 0
+            ? Math.max(0.12, (d.expenses / maxDayActivity) * 0.9)
+            : 0.05,
       }));
 
-      const points = daysWithRatio.map((d, dIdx) => {
+      const incomePoints = daysWithRatio.map((d, dIdx) => {
         const x = pad + (dIdx + 0.5) * slotWidth;
-        const y = baselineY - d.ratio * curveMaxHeight;
+        const y = baselineY - d.incomeRatio * curveMaxHeight;
         return { x, y, data: d };
       });
 
-      const splineResult = getCubicBezierSpline(points, baselineY);
+      const expensePoints = daysWithRatio.map((d, dIdx) => {
+        const x = pad + (dIdx + 0.5) * slotWidth;
+        const y = baselineY - d.expenseRatio * curveMaxHeight;
+        return { x, y, data: d };
+      });
+
+      const incomeSplineResult = getCubicBezierSpline(incomePoints, baselineY);
+      const expenseSplineResult = getCubicBezierSpline(expensePoints, baselineY);
 
       return {
         weekIndex: wk.wIdx,
         label: wk.label,
         dateRange: wk.dateRange,
         days: daysWithRatio,
-        spline: {
-          points,
-          linePath: splineResult.linePath,
-          areaPath: splineResult.areaPath,
+        incomeSpline: {
+          points: incomePoints,
+          linePath: incomeSplineResult.linePath,
+          areaPath: incomeSplineResult.areaPath,
+          baselineY,
+        },
+        expenseSpline: {
+          points: expensePoints,
+          linePath: expenseSplineResult.linePath,
+          areaPath: expenseSplineResult.areaPath,
           baselineY,
         },
       };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     containerWidth,
     currentMonth,
@@ -503,16 +517,17 @@ export function NetWorthAnalyticsCard({
 
   // Jump to active initial pages on mount
   useEffect(() => {
-    if (currentMonth >= 6) {
+    const targetPage = Math.floor(currentMonth / 4);
+    if (targetPage > 0) {
       const initialW = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-      monthlyScrollX.value = initialW;
-      setCurrentMonthlyPage(1);
+      monthlyScrollX.value = targetPage * initialW;
+      setCurrentMonthlyPage(targetPage);
       const timer = setTimeout(() => {
-        monthlyScrollRef.current?.scrollTo({ x: initialW, animated: false });
+        monthlyScrollRef.current?.scrollTo({ x: targetPage * initialW, animated: false });
       }, 50);
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerWidth, currentMonth]);
 
   useEffect(() => {
@@ -528,7 +543,7 @@ export function NetWorthAnalyticsCard({
       }, 50);
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerWidth, currentWeekIndex]);
 
   // Layout Handler
@@ -536,10 +551,11 @@ export function NetWorthAnalyticsCard({
     const width = e.nativeEvent.layout.width;
     if (width > 0 && width !== containerWidth) {
       setContainerWidth(width);
-      if (currentMonth >= 6) {
-        monthlyScrollX.value = width;
-        monthlyScrollRef.current?.scrollTo({ x: width, animated: false });
-        setCurrentMonthlyPage(1);
+      const targetPage = Math.floor(currentMonth / 4);
+      if (targetPage > 0) {
+        monthlyScrollX.value = targetPage * width;
+        monthlyScrollRef.current?.scrollTo({ x: targetPage * width, animated: false });
+        setCurrentMonthlyPage(targetPage);
       }
       if (currentWeekIndex > 0) {
         weeklyScrollX.value = currentWeekIndex * width;
@@ -558,7 +574,7 @@ export function NetWorthAnalyticsCard({
     if (containerWidth <= 0) return;
     const offsetX = e.nativeEvent.contentOffset.x;
     const page = Math.round(offsetX / containerWidth);
-    if (page !== currentMonthlyPage && (page === 0 || page === 1)) {
+    if (page !== currentMonthlyPage && page >= 0 && page <= 2) {
       setCurrentMonthlyPage(page);
     }
   };
@@ -582,7 +598,7 @@ export function NetWorthAnalyticsCard({
 
     if (nextPeriod === "Monthly") {
       setSelectedMonthIndex(currentMonth);
-      const targetPage = currentMonth >= 6 ? 1 : 0;
+      const targetPage = Math.floor(currentMonth / 4);
       setCurrentMonthlyPage(targetPage);
       if (containerWidth > 0) {
         monthlyScrollRef.current?.scrollTo({
@@ -620,26 +636,29 @@ export function NetWorthAnalyticsCard({
     setCurrentWeeklyPage(targetPage);
   };
 
-  // 2 half-year groups of 6 months each
-  const page1Months = monthlyChartData.slice(0, 6);
-  const page2Months = monthlyChartData.slice(6, 12);
-  const activeIndexInVisibleMonthPage = selectedMonthIndex % 6;
+  // 3 trimester groups of 4 months each
+  const monthlyPages = useMemo(() => [
+    monthlyChartData.slice(0, 4),
+    monthlyChartData.slice(4, 8),
+    monthlyChartData.slice(8, 12),
+  ], [monthlyChartData]);
+  const activeIndexInVisibleMonthPage = selectedMonthIndex % 4;
 
   // Monthly Tooltip Corner Coordinates Calculation
   const monthlyTooltipStyle = useMemo(() => {
-    const TOOLTIP_WIDTH = 170;
+    const TOOLTIP_WIDTH = 150;
     const TOOLTIP_HEIGHT = 70;
     const BADGE_OFFSET = 18; // 12px badge radius + 6px visual breathing room
     const w = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-    const innerWidth = Math.max(w - 8, 200);
-    const gap = Math.max((innerWidth - 6 * BAR_WIDTH) / 5, 0);
+    const innerWidth = Math.max(w - 32, 200); // 32 is for px-4 (16px padding on each side)
+    const gap = Math.max((innerWidth - 4 * BAR_WIDTH) / 3, 0);
 
-    const i = activeIndexInVisibleMonthPage; // 0..5
-    const barLeft = 4 + i * (BAR_WIDTH + gap);
+    const i = activeIndexInVisibleMonthPage; // 0..3
+    const barLeft = 16 + i * (BAR_WIDTH + gap); // 16 is for px-4 left padding
     const barCenter = barLeft + BAR_WIDTH / 2;
 
     let left = 0;
-    if (i <= 2) {
+    if (i <= 1) {
       left = barCenter + BADGE_OFFSET;
       if (left + TOOLTIP_WIDTH > w - 4) {
         left = w - TOOLTIP_WIDTH - 4;
@@ -652,9 +671,9 @@ export function NetWorthAnalyticsCard({
     }
 
     const baselineY = 213;
-    const activeBarHeight = Math.round(
-      14 + activeMonthlyPoint.barHeightRatio * (TRACK_HEIGHT - 17)
-    );
+    const activeIncHeight = Math.round(14 + activeMonthlyPoint.incomeRatio * (TRACK_HEIGHT - 17));
+    const activeExpHeight = Math.round(14 + activeMonthlyPoint.expenseRatio * (TRACK_HEIGHT - 17));
+    const activeBarHeight = Math.max(activeIncHeight, activeExpHeight);
     const badgeCenterY = baselineY - activeBarHeight;
     const top = badgeCenterY - TOOLTIP_HEIGHT + 6;
 
@@ -663,7 +682,7 @@ export function NetWorthAnalyticsCard({
       top: Math.round(top),
       width: TOOLTIP_WIDTH,
     };
-  }, [containerWidth, activeIndexInVisibleMonthPage, activeMonthlyPoint.barHeightRatio]);
+  }, [containerWidth, activeIndexInVisibleMonthPage, activeMonthlyPoint.incomeRatio, activeMonthlyPoint.expenseRatio]);
 
   // Weekly Tooltip Corner Coordinates Calculation for a given week
   const getWeeklyTooltipStyle = (week: WeekData) => {
@@ -671,22 +690,24 @@ export function NetWorthAnalyticsCard({
     const TOOLTIP_HEIGHT = 70;
     const BADGE_OFFSET = 18;
     const w = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-    const pt = week.spline.points[selectedDayIndex] || week.spline.points[0];
+    const ptInc = week.incomeSpline.points[selectedDayIndex] || week.incomeSpline.points[0];
+    const ptExp = week.expenseSpline.points[selectedDayIndex] || week.expenseSpline.points[0];
 
     let left = 0;
     if (selectedDayIndex <= 3) {
-      left = pt.x + BADGE_OFFSET;
+      left = ptInc.x + BADGE_OFFSET;
       if (left + TOOLTIP_WIDTH > w - 4) {
         left = w - TOOLTIP_WIDTH - 4;
       }
     } else {
-      left = pt.x - BADGE_OFFSET - TOOLTIP_WIDTH;
+      left = ptInc.x - BADGE_OFFSET - TOOLTIP_WIDTH;
       if (left < 4) {
         left = 4;
       }
     }
 
-    const top = pt.y - TOOLTIP_HEIGHT + 6;
+    const highestY = Math.min(ptInc.y, ptExp.y);
+    const top = highestY - TOOLTIP_HEIGHT + 6;
 
     return {
       left: Math.round(left),
@@ -823,14 +844,25 @@ export function NetWorthAnalyticsCard({
   // Render individual month bar container
   const renderMonthBar = (item: MonthDataPoint, monthIndex: number) => {
     const isSelected = monthIndex === selectedMonthIndex;
-    const barHeight = Math.round(
-      14 + item.barHeightRatio * (TRACK_HEIGHT - 17)
-    );
+    const incomeHeight = Math.round(14 + item.incomeRatio * (TRACK_HEIGHT - 17));
+    const expenseHeight = Math.round(14 + item.expenseRatio * (TRACK_HEIGHT - 17));
+    const maxHeight = Math.max(incomeHeight, expenseHeight);
+    const svgHeight = maxHeight + 4;
 
-    const r = 13;
-    const w = BAR_WIDTH - 0.5;
-    const h = barHeight - 0.5;
-    const barPath = `M 0.5 ${h} L 0.5 ${0.5 + r} A ${r} ${r} 0 0 1 ${0.5 + r} 0.5 L ${w - r} 0.5 A ${r} ${r} 0 0 1 ${w} ${0.5 + r} L ${w} ${h} Z`;
+    const r = 7.5;
+    const barW = 33.5;
+    const gap = 4;
+    // Perfectly center the bars within the 75px BAR_WIDTH to prevent any clipping on the edges
+    const startInc = (BAR_WIDTH - (barW * 2 + gap)) / 2;
+    const startExp = startInc + barW + gap;
+
+    const iY = svgHeight - incomeHeight;
+    const iH = svgHeight;
+    const incPath = `M ${startInc} ${iH} L ${startInc} ${iY + r} A ${r} ${r} 0 0 1 ${startInc + r} ${iY} L ${startInc + barW - r} ${iY} A ${r} ${r} 0 0 1 ${startInc + barW} ${iY + r} L ${startInc + barW} ${iH} Z`;
+
+    const eY = svgHeight - expenseHeight;
+    const eH = svgHeight;
+    const expPath = `M ${startExp} ${eH} L ${startExp} ${eY + r} A ${r} ${r} 0 0 1 ${startExp + r} ${eY} L ${startExp + barW - r} ${eY} A ${r} ${r} 0 0 1 ${startExp + barW} ${eY + r} L ${startExp + barW} ${eH} Z`;
 
     return (
       <TouchableOpacity
@@ -847,7 +879,7 @@ export function NetWorthAnalyticsCard({
             exiting={FadeOut.duration(150)}
             className="absolute z-20 items-center justify-center"
             style={{
-              bottom: barHeight - 12,
+              bottom: maxHeight - 12,
               left: 0,
               right: 0,
               alignItems: "center",
@@ -879,99 +911,35 @@ export function NetWorthAnalyticsCard({
           </Animated.View>
         )}
 
-        {/* 13px Rounded Container */}
         <View
           style={[
             styles.monthSlotContainer,
             isSelected && styles.monthSlotContainerActive,
           ]}
         >
-          {/* Month Bar Pillar with local SVG linear gradients */}
-          <View
-            style={[
-              styles.barWrapper,
-              {
-                width: BAR_WIDTH,
-                height: barHeight,
-                borderTopLeftRadius: 13.5,
-                borderTopRightRadius: 13.5,
-              },
-            ]}
-          >
-            <Svg height={barHeight} width={BAR_WIDTH}>
+          <View style={{ width: BAR_WIDTH, height: svgHeight }}>
+            <Svg height={svgHeight} width={BAR_WIDTH}>
               <Defs>
-                {/* Bar Gradient Stroke */}
-                <LinearGradient
-                  id={`barBorderGradient-${monthIndex}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <Stop
-                    offset="0%"
-                    stopColor={isSelected ? "#FFFFFF" : "rgba(255, 255, 255, 0.4)"}
-                    stopOpacity={isSelected ? 1 : 0.6}
-                  />
-                  <Stop
-                    offset="40%"
-                    stopColor={isSelected ? "#B2C5FF" : "rgba(178, 197, 255, 0.25)"}
-                    stopOpacity={isSelected ? 0.9 : 0.35}
-                  />
-                  <Stop
-                    offset="80%"
-                    stopColor={isSelected ? "#3B82F6" : "rgba(59, 130, 246, 0.15)"}
-                    stopOpacity={isSelected ? 0.5 : 0.15}
-                  />
-                  <Stop
-                    offset="100%"
-                    stopColor={isSelected ? "#1D4ED8" : "rgba(19, 23, 34, 0)"}
-                    stopOpacity={0}
-                  />
-                </LinearGradient>
-
-                {/* Bar Gradient Fill */}
-                <LinearGradient
-                  id={`barGradient-${monthIndex}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <Stop
-                    offset="0%"
-                    stopColor={isSelected ? "#FFFFFF" : "#4A5268"}
-                    stopOpacity={isSelected ? 0.95 : 0.45}
-                  />
-                  <Stop
-                    offset="25%"
-                    stopColor={isSelected ? "#B2C5FF" : "#2E3445"}
-                    stopOpacity={isSelected ? 0.75 : 0.3}
-                  />
-                  <Stop
-                    offset="70%"
-                    stopColor={isSelected ? "#5B8CFF" : "#1C1F2A"}
-                    stopOpacity={isSelected ? 0.35 : 0.15}
-                  />
+                <LinearGradient id={`incGrad-${monthIndex}`} x1="0" y1={iY} x2="0" y2={iH} gradientUnits="userSpaceOnUse">
+                  <Stop offset="0%" stopColor={isSelected ? "#4DE082" : "#288B4B"} stopOpacity={isSelected ? 1 : 0.6} />
                   <Stop offset="100%" stopColor="#131722" stopOpacity={0} />
                 </LinearGradient>
+                <LinearGradient id={`expGrad-${monthIndex}`} x1="0" y1={eY} x2="0" y2={eH} gradientUnits="userSpaceOnUse">
+                  <Stop offset="0%" stopColor={isSelected ? "#FFB3B0" : "#994C4A"} stopOpacity={isSelected ? 1 : 0.6} />
+                  <Stop offset="100%" stopColor="#131722" stopOpacity={0} />
+                </LinearGradient>
+                <LinearGradient id={`incBorderGrad-${monthIndex}`} x1="0" y1={iY} x2="0" y2={iH} gradientUnits="userSpaceOnUse">
+                  <Stop offset="0%" stopColor={isSelected ? "#ffffffff" : "rgba(77,224,130,0.5)"} stopOpacity={1} />
+                  <Stop offset="100%" stopColor={isSelected ? "#4DE082" : "rgba(77,224,130,0.5)"} stopOpacity={0} />
+                </LinearGradient>
+                <LinearGradient id={`expBorderGrad-${monthIndex}`} x1="0" y1={eY} x2="0" y2={eH} gradientUnits="userSpaceOnUse">
+                  <Stop offset="0%" stopColor={isSelected ? "#FFB3B0" : "rgba(255,179,176,0.5)"} stopOpacity={1} />
+                  <Stop offset="100%" stopColor={isSelected ? "#FFB3B0" : "rgba(255,179,176,0.5)"} stopOpacity={0} />
+                </LinearGradient>
               </Defs>
-              <Path
-                d={barPath}
-                fill={`url(#barGradient-${monthIndex})`}
-                stroke={`url(#barBorderGradient-${monthIndex})`}
-                strokeWidth={1}
-                strokeLinejoin="round"
-              />
+              <Path d={incPath} fill={`url(#incGrad-${monthIndex})`} stroke={`url(#incBorderGrad-${monthIndex})`} strokeWidth={1.5} />
+              <Path d={expPath} fill={`url(#expGrad-${monthIndex})`} stroke={`url(#expBorderGrad-${monthIndex})`} strokeWidth={1.5} />
             </Svg>
-
-            {/* Central Vertical Guide Line on Active Bar */}
-            {isSelected && (
-              <View
-                className="absolute top-0 bottom-0 bg-white/80 self-center"
-                style={{ width: 1.5 }}
-              />
-            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -1005,7 +973,7 @@ export function NetWorthAnalyticsCard({
       : activeMonthlyPoint.overall;
 
   return (
-    <View className="mx-5 mt-2 mb-6 rounded-[32px] bg-[#131722] border border-white/10 overflow-hidden relative shadow-2xl">
+    <View className="mx-3 mt-2 mb-6 rounded-[32px] bg-[#131722] border border-white/10 overflow-hidden relative shadow-2xl">
       {/* 1. Ambient Top-Left Warm Bluish Atmospheric Glow */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         <Svg height="100%" width="100%">
@@ -1035,7 +1003,7 @@ export function NetWorthAnalyticsCard({
       </View>
 
       {/* Card Content Container */}
-      <View className="p-5 pt-6">
+      <View className="px-4 pt-6 pb-5">
         {/* Top Header Row */}
         <View className="flex-row items-start justify-between">
           <View className="flex-1 pr-2">
@@ -1139,171 +1107,114 @@ export function NetWorthAnalyticsCard({
                     pointerEvents="none"
                   >
                     <Defs>
-                      <LinearGradient
-                        id={`weeklyAreaGradient-${wIdx}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <Stop
-                          offset="0%"
-                          stopColor="#B2C5FF"
-                          stopOpacity={0.42}
-                        />
-                        <Stop
-                          offset="35%"
-                          stopColor="#5B8CFF"
-                          stopOpacity={0.22}
-                        />
-                        <Stop
-                          offset="70%"
-                          stopColor="#2563EB"
-                          stopOpacity={0.08}
-                        />
-                        <Stop
-                          offset="100%"
-                          stopColor="#131722"
-                          stopOpacity={0}
-                        />
+                      {/* Income Gradients */}
+                      <LinearGradient id={`incomeAreaGradient-${wIdx}`} x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0%" stopColor="#4DE082" stopOpacity={0.42} />
+                        <Stop offset="35%" stopColor="#10B981" stopOpacity={0.22} />
+                        <Stop offset="70%" stopColor="#059669" stopOpacity={0.08} />
+                        <Stop offset="100%" stopColor="#131722" stopOpacity={0} />
                       </LinearGradient>
-                      <LinearGradient
-                        id={`weeklyLineGradient-${wIdx}`}
-                        x1="0"
-                        y1="0"
-                        x2="1"
-                        y2="0"
-                      >
-                        <Stop offset="0%" stopColor="#93C5FD" />
-                        <Stop offset="50%" stopColor="#B2C5FF" />
-                        <Stop offset="100%" stopColor="#60A5FA" />
+                      <LinearGradient id={`incomeLineGradient-${wIdx}`} x1="0" y1="0" x2="1" y2="0">
+                        <Stop offset="0%" stopColor="#86EFAC" />
+                        <Stop offset="50%" stopColor="#4DE082" />
+                        <Stop offset="100%" stopColor="#10B981" />
+                      </LinearGradient>
+
+                      {/* Expense Gradients */}
+                      <LinearGradient id={`expenseAreaGradient-${wIdx}`} x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0%" stopColor="#F87171" stopOpacity={0.42} />
+                        <Stop offset="35%" stopColor="#EF4444" stopOpacity={0.22} />
+                        <Stop offset="70%" stopColor="#DC2626" stopOpacity={0.08} />
+                        <Stop offset="100%" stopColor="#131722" stopOpacity={0} />
+                      </LinearGradient>
+                      <LinearGradient id={`expenseLineGradient-${wIdx}`} x1="0" y1="0" x2="1" y2="0">
+                        <Stop offset="0%" stopColor="#FCA5A5" />
+                        <Stop offset="50%" stopColor="#F87171" />
+                        <Stop offset="100%" stopColor="#EF4444" />
                       </LinearGradient>
                     </Defs>
 
                     {/* Subtle Horizontal Dashed Guidelines */}
-                    <Line
-                      x1={16}
-                      y1={90}
-                      x2={containerWidth - 16}
-                      y2={90}
-                      stroke="#B2C5FF"
-                      strokeOpacity={0.08}
-                      strokeDasharray="4 4"
-                      strokeWidth={1}
-                    />
-                    <Line
-                      x1={16}
-                      y1={150}
-                      x2={containerWidth - 16}
-                      y2={150}
-                      stroke="#B2C5FF"
-                      strokeOpacity={0.08}
-                      strokeDasharray="4 4"
-                      strokeWidth={1}
-                    />
+                    <Line x1={16} y1={90} x2={containerWidth - 16} y2={90} stroke="#B2C5FF" strokeOpacity={0.08} strokeDasharray="4 4" strokeWidth={1} />
+                    <Line x1={16} y1={150} x2={containerWidth - 16} y2={150} stroke="#B2C5FF" strokeOpacity={0.08} strokeDasharray="4 4" strokeWidth={1} />
 
-                    {/* Smooth Gradient Area */}
-                    <Path
-                      d={week.spline.areaPath}
-                      fill={`url(#weeklyAreaGradient-${wIdx})`}
-                    />
+                    {/* Expense Area & Lines (rendered first so income is on top) */}
+                    <Path d={week.expenseSpline.areaPath} fill={`url(#expenseAreaGradient-${wIdx})`} />
+                    <Path d={week.expenseSpline.linePath} stroke="#EF4444" strokeWidth={6} strokeOpacity={0.22} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    <Path d={week.expenseSpline.linePath} stroke={`url(#expenseLineGradient-${wIdx})`} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
-                    {/* Glow Stroke */}
-                    <Path
-                      d={week.spline.linePath}
-                      stroke="#5B8CFF"
-                      strokeWidth={6}
-                      strokeOpacity={0.22}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                    />
+                    {/* Income Area & Lines */}
+                    <Path d={week.incomeSpline.areaPath} fill={`url(#incomeAreaGradient-${wIdx})`} />
+                    <Path d={week.incomeSpline.linePath} stroke="#10B981" strokeWidth={6} strokeOpacity={0.22} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    <Path d={week.incomeSpline.linePath} stroke={`url(#incomeLineGradient-${wIdx})`} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
-                    {/* Main Stroke */}
-                    <Path
-                      d={week.spline.linePath}
-                      stroke={`url(#weeklyLineGradient-${wIdx})`}
-                      strokeWidth={3}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                    />
-
-                    {/* Inactive Data Dots */}
-                    {week.spline.points.map((pt, pIdx) => {
-                      if (
-                        selectedWeekIndex === wIdx &&
-                        pIdx === selectedDayIndex
-                      )
-                        return null;
+                    {/* Inactive Data Dots - Expenses */}
+                    {week.expenseSpline.points.map((pt, pIdx) => {
+                      if (selectedWeekIndex === wIdx && pIdx === selectedDayIndex) return null;
                       return (
-                        <Circle
-                          key={`week-${wIdx}-dot-${pIdx}`}
-                          cx={pt.x}
-                          cy={pt.y}
-                          r={3.5}
-                          fill="#131722"
-                          stroke="#B2C5FF"
-                          strokeWidth={2}
-                          strokeOpacity={0.75}
-                        />
+                        <Circle key={`week-${wIdx}-dot-exp-${pIdx}`} cx={pt.x} cy={pt.y} r={3.5} fill="#131722" stroke="#F87171" strokeWidth={2} strokeOpacity={0.75} />
                       );
                     })}
 
-                    {/* Active Selected Day Vertical Guide Line (From Center of Badge to Baseline) */}
-                    {selectedWeekIndex === wIdx &&
-                      week.spline.points[selectedDayIndex] && (
-                        <Line
-                          x1={week.spline.points[selectedDayIndex].x}
-                          y1={week.spline.points[selectedDayIndex].y}
-                          x2={week.spline.points[selectedDayIndex].x}
-                          y2={week.spline.baselineY + 2}
-                          stroke="#FFFFFF"
-                          strokeOpacity={0.8}
-                          strokeWidth={1.5}
-                        />
-                      )}
+                    {/* Inactive Data Dots - Income */}
+                    {week.incomeSpline.points.map((pt, pIdx) => {
+                      if (selectedWeekIndex === wIdx && pIdx === selectedDayIndex) return null;
+                      return (
+                        <Circle key={`week-${wIdx}-dot-inc-${pIdx}`} cx={pt.x} cy={pt.y} r={3.5} fill="#131722" stroke="#4DE082" strokeWidth={2} strokeOpacity={0.75} />
+                      );
+                    })}
+
+                    {/* Active Selected Day Vertical Guide Line (From highest point to Baseline) */}
+                    {selectedWeekIndex === wIdx && week.incomeSpline.points[selectedDayIndex] && (
+                      <Line
+                        x1={week.incomeSpline.points[selectedDayIndex].x}
+                        y1={Math.min(week.incomeSpline.points[selectedDayIndex].y, week.expenseSpline.points[selectedDayIndex].y)}
+                        x2={week.incomeSpline.points[selectedDayIndex].x}
+                        y2={week.incomeSpline.baselineY + 2}
+                        stroke="#FFFFFF"
+                        strokeOpacity={0.8}
+                        strokeWidth={1.5}
+                      />
+                    )}
                   </Svg>
 
-                  {/* Active Selected Day Pin Checkmark Badge (Exact Replica of Monthly View Component) */}
-                  {selectedWeekIndex === wIdx &&
-                    week.spline.points[selectedDayIndex] && (
-                      <Animated.View
-                        entering={FadeIn.duration(200)}
-                        exiting={FadeOut.duration(150)}
-                        className="absolute z-20 items-center justify-center"
-                        style={{
-                          left: week.spline.points[selectedDayIndex].x - 12,
-                          top: week.spline.points[selectedDayIndex].y - 12,
-                          width: 24,
-                          height: 24,
-                        }}
-                      >
-                        <View
-                          className="w-6 h-6 rounded-full bg-[#B2C5FF] items-center justify-center shadow-lg"
-                          style={{
-                            borderWidth: 2,
-                            borderColor: "#FFFFFF",
-                            shadowColor: "#B2C5FF",
-                            shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: 0.85,
-                            shadowRadius: 6,
-                            elevation: 6,
-                          }}
-                        >
-                          <Svg width={12} height={12} viewBox="0 0 12 12">
-                            <Path
-                              d="M 2.5 6.2 L 4.8 8.5 L 9.5 3.5"
-                              fill="none"
-                              stroke="#ffffffff"
-                              strokeWidth={2}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </Svg>
-                        </View>
-                      </Animated.View>
-                    )}
+                  {/* Active Selected Day Pin Checkmark Badge for Income */}
+                  {selectedWeekIndex === wIdx && week.incomeSpline.points[selectedDayIndex] && (
+                    <Animated.View
+                      entering={FadeIn.duration(200)}
+                      exiting={FadeOut.duration(150)}
+                      className="absolute z-20 items-center justify-center"
+                      style={{
+                        left: week.incomeSpline.points[selectedDayIndex].x - 12,
+                        top: week.incomeSpline.points[selectedDayIndex].y - 12,
+                        width: 24,
+                        height: 24,
+                      }}
+                    >
+                      <View className="w-6 h-6 rounded-full bg-[#4DE082] items-center justify-center shadow-lg" style={{ borderWidth: 2, borderColor: "#FFFFFF", shadowColor: "#4DE082", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.85, shadowRadius: 6, elevation: 6 }}>
+                        <Svg width={12} height={12} viewBox="0 0 12 12"><Path d="M 2.5 6.2 L 4.8 8.5 L 9.5 3.5" fill="none" stroke="#ffffffff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                      </View>
+                    </Animated.View>
+                  )}
+
+                  {/* Active Selected Day Pin Badge for Expense */}
+                  {selectedWeekIndex === wIdx && week.expenseSpline.points[selectedDayIndex] && (
+                    <Animated.View
+                      entering={FadeIn.duration(200)}
+                      exiting={FadeOut.duration(150)}
+                      className="absolute z-20 items-center justify-center"
+                      style={{
+                        left: week.expenseSpline.points[selectedDayIndex].x - 12,
+                        top: week.expenseSpline.points[selectedDayIndex].y - 12,
+                        width: 24,
+                        height: 24,
+                      }}
+                    >
+                      <View className="w-6 h-6 rounded-full bg-[#F87171] items-center justify-center shadow-lg" style={{ borderWidth: 2, borderColor: "#FFFFFF", shadowColor: "#F87171", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.85, shadowRadius: 6, elevation: 6 }}>
+                        <Svg width={12} height={12} viewBox="0 0 12 12"><Path d="M 2.5 6.2 L 4.8 8.5 L 9.5 3.5" fill="none" stroke="#ffffffff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                      </View>
+                    </Animated.View>
+                  )}
 
                   {/* Baseline */}
                   <View className="w-full h-[1.5px] bg-[#B2C5FF]/30 mb-2.5 rounded-full" />
@@ -1363,87 +1274,57 @@ export function NetWorthAnalyticsCard({
               snapToAlignment="start"
               contentOffset={{
                 x:
-                  (currentMonth >= 6 ? 1 : 0) *
+                  Math.floor(currentMonth / 4) *
                   (containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH),
                 y: 0,
               }}
               style={{ width: containerWidth, height: 250 }}
-              contentContainerStyle={{ width: containerWidth * 2, height: 250 }}
+              contentContainerStyle={{ width: containerWidth * 3, height: 250 }}
             >
-              {/* Page 1: JAN - JUN */}
-              <View
-                style={{ width: containerWidth, height: 250 }}
-                className="justify-end px-1 relative"
-              >
-                {/* Snapshot Tooltip attached to Page 1 */}
-                {selectedMonthIndex < 6 && renderMonthlyTooltip()}
+              {monthlyPages.map((pageMonths, pIdx) => (
+                <View
+                  key={`monthly-page-${pIdx}`}
+                  style={{ width: containerWidth, height: 250 }}
+                  className="justify-end px-4 relative"
+                >
+                  {/* Snapshot Tooltip attached to active page */}
+                  {Math.floor(selectedMonthIndex / 4) === pIdx && renderMonthlyTooltip()}
 
-                {/* Row of Individual Month Bar Containers */}
-                <View className="flex-row items-end justify-between">
-                  {page1Months.map((item, idx) =>
-                    renderMonthBar(item, idx)
-                  )}
+                  {/* Row of Individual Month Bar Containers */}
+                  <View className="flex-row items-end justify-between">
+                    {pageMonths.map((item, idx) =>
+                      renderMonthBar(item, pIdx * 4 + idx)
+                    )}
+                  </View>
+
+                  {/* White-blue baseline right under the containers */}
+                  <View className="w-full h-[1.5px] bg-[#B2C5FF]/30 mb-2.5 rounded-full" />
+
+                  {/* Row of Month Labels */}
+                  <View className="flex-row items-center justify-between">
+                    {pageMonths.map((item, idx) =>
+                      renderMonthLabel(item, pIdx * 4 + idx)
+                    )}
+                  </View>
                 </View>
-
-                {/* White-blue baseline right under the containers */}
-                <View className="w-full h-[1.5px] bg-[#B2C5FF]/30 mb-2.5 rounded-full" />
-
-                {/* Row of Month Labels */}
-                <View className="flex-row items-center justify-between">
-                  {page1Months.map((item, idx) =>
-                    renderMonthLabel(item, idx)
-                  )}
-                </View>
-              </View>
-
-              {/* Page 2: JUL - DEC */}
-              <View
-                style={{ width: containerWidth, height: 250 }}
-                className="justify-end px-1 relative"
-              >
-                {/* Snapshot Tooltip attached to Page 2 */}
-                {selectedMonthIndex >= 6 && renderMonthlyTooltip()}
-
-                {/* Row of Individual Month Bar Containers */}
-                <View className="flex-row items-end justify-between">
-                  {page2Months.map((item, idx) =>
-                    renderMonthBar(item, 6 + idx)
-                  )}
-                </View>
-
-                {/* White-blue baseline right under the containers */}
-                <View className="w-full h-[1.5px] bg-[#B2C5FF]/30 mb-2.5 rounded-full" />
-
-                {/* Row of Month Labels */}
-                <View className="flex-row items-center justify-between">
-                  {page2Months.map((item, idx) =>
-                    renderMonthLabel(item, 6 + idx)
-                  )}
-                </View>
-              </View>
+              ))}
             </Animated.ScrollView>
           )}
         </View>
 
-        {/* Dynamic Pagination Dots (2 Dots for Monthly, 4 Dots for Weekly) */}
+        {/* Dynamic Pagination Dots (3 Dots for Monthly, 4-6 Dots for Weekly) */}
         {selectedPeriod === "Monthly" ? (
           <View className="flex-row items-center justify-center gap-1.5 mt-3">
-            <Pressable onPress={() => toggleMonthlyPage(0)} hitSlop={8}>
-              <Animated.View
-                style={[
-                  { height: 6, borderRadius: 3, backgroundColor: "#B2C5FF" },
-                  monthDot0Style,
-                ]}
-              />
-            </Pressable>
-            <Pressable onPress={() => toggleMonthlyPage(1)} hitSlop={8}>
-              <Animated.View
-                style={[
-                  { height: 6, borderRadius: 3, backgroundColor: "#B2C5FF" },
-                  monthDot1Style,
-                ]}
-              />
-            </Pressable>
+            {[monthDot0Style, monthDot1Style, monthDot2Style].map((style, idx) => (
+              <Pressable key={`month-dot-${idx}`} onPress={() => toggleMonthlyPage(idx)} hitSlop={8}>
+                <Animated.View
+                  style={[
+                    { height: 6, borderRadius: 3, backgroundColor: "#B2C5FF" },
+                    style,
+                  ]}
+                />
+              </Pressable>
+            ))}
           </View>
         ) : (
           <View className="flex-row items-center justify-center gap-1.5 mt-3">
@@ -1497,7 +1378,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     backgroundColor: "transparent",
-    overflow: "hidden",
+    overflow: "visible",
     justifyContent: "flex-end",
     alignItems: "center",
     position: "relative",
