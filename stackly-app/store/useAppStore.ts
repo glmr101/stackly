@@ -75,7 +75,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           accounts: [
             ...state.accounts,
-            { ...account, id: `a${Date.now()}` },
+            { ...account, id: `a${Date.now()}`, createdAt: new Date().toISOString() },
           ],
         })),
 

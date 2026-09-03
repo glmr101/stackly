@@ -25,6 +25,7 @@ export const MOCK_ACCOUNTS: Account[] = [
     cardCategory: 'debit',
     cardNetwork: 'mastercard',
     bankCode: 'BPI',
+    createdAt: new Date('2025-01-01T00:00:00Z').toISOString(),
   },
   {
     id: 'a2',
@@ -36,6 +37,7 @@ export const MOCK_ACCOUNTS: Account[] = [
     cardCategory: 'debit',
     cardNetwork: 'visa',
     bankCode: 'MAYA',
+    createdAt: new Date('2025-01-01T00:00:00Z').toISOString(),
   },
   {
     id: 'a3',
@@ -47,6 +49,7 @@ export const MOCK_ACCOUNTS: Account[] = [
     cardCategory: 'debit',
     cardNetwork: 'mastercard',
     bankCode: 'MARIBANK',
+    createdAt: new Date('2025-01-01T00:00:00Z').toISOString(),
   },
 ];
 

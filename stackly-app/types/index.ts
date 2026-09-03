@@ -31,6 +31,7 @@ export type Account = {
   balance: number;
   type: 'bank' | 'e-wallet' | 'cash' | 'credit card' | 'investment';
   icon: MaterialIconName;
+  createdAt: string; // ISO String
   cardCategory?: 'debit' | 'credit';
   cardNetwork?: 'visa' | 'mastercard' | 'generic';
   bankCode?: string;
