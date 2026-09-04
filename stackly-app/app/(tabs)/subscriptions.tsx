@@ -59,14 +59,14 @@ export default function Subscriptions() {
     filter === "all"
       ? subs
       : filter === "active"
-      ? subs.filter((s) => s.active)
-      : subs.filter((s) => !s.active);
+        ? subs.filter((s) => s.active)
+        : subs.filter((s) => !s.active);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+        <Text className="text-4xl font-extrabold text-on-surface tracking-tight">
           Recurring Bills
         </Text>
       </AnimatedBox>
@@ -135,16 +135,14 @@ export default function Subscriptions() {
                 key={f.value}
                 activeScale={0.92}
                 onPress={() => setFilter(f.value)}
-                className={`px-4 py-2 rounded-full border ${
-                  isSelected
+                className={`px-4 py-2 rounded-full border ${isSelected
                     ? "bg-primary border-primary"
                     : "bg-surface-container border-outline-variant/30"
-                }`}
+                  }`}
               >
                 <Text
-                  className={`text-xs font-bold ${
-                    isSelected ? "text-on-primary" : "text-on-surface-variant"
-                  }`}
+                  className={`text-xs font-bold ${isSelected ? "text-on-primary" : "text-on-surface-variant"
+                    }`}
                 >
                   {f.label}
                 </Text>
@@ -165,10 +163,10 @@ export default function Subscriptions() {
               sub.billingCycle === "yearly"
                 ? "/yr"
                 : sub.billingCycle === "weekly"
-                ? "/wk"
-                : sub.billingCycle === "quarterly"
-                ? "/qtr"
-                : "/mo";
+                  ? "/wk"
+                  : sub.billingCycle === "quarterly"
+                    ? "/qtr"
+                    : "/mo";
 
             return (
               <TouchableOpacity
@@ -180,9 +178,8 @@ export default function Subscriptions() {
                     params: { id: sub.id },
                   })
                 }
-                className={`bg-surface-container rounded-[24px] p-5 border border-outline-variant/30 overflow-hidden shadow-sm relative ${
-                  !sub.active ? "opacity-75" : ""
-                }`}
+                className={`bg-surface-container rounded-[24px] p-5 border border-outline-variant/30 overflow-hidden shadow-sm relative ${!sub.active ? "opacity-75" : ""
+                  }`}
               >
                 {/* Brand Color Aura */}
                 <View

@@ -37,9 +37,8 @@ function formatRemainingTime(targetDateStr?: string): string | null {
   }
 
   const diffYears = (diffDays / 365.25).toFixed(1);
-  return `${diffYears.endsWith(".0") ? diffYears.slice(0, -2) : diffYears} ${
-    diffYears === "1.0" ? "yr" : "yrs"
-  } left`;
+  return `${diffYears.endsWith(".0") ? diffYears.slice(0, -2) : diffYears} ${diffYears === "1.0" ? "yr" : "yrs"
+    } left`;
 }
 
 export default function Budgets() {
@@ -121,12 +120,10 @@ export default function Budgets() {
         className="h-16 px-5 flex-row items-center justify-between z-50"
       >
         <View>
-          <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
+          <Text className="text-4xl font-extrabold text-on-surface tracking-tight">
             Budgets & Savings
           </Text>
-          <Text className="text-xs text-on-surface-variant font-medium">
-            {monthName} {currentYear}
-          </Text>
+
         </View>
       </AnimatedBox>
 
@@ -154,22 +151,20 @@ export default function Budgets() {
                       {isBudgetOver ? "Budget Exceeded" : "Remaining Budget"}
                     </Text>
                     <View
-                      className={`px-2.5 py-0.5 rounded-full border ${
-                        isBudgetOver
-                          ? "bg-error/15 border-error/30"
-                          : overallBudgetPercentage >= 80
+                      className={`px-2.5 py-0.5 rounded-full border ${isBudgetOver
+                        ? "bg-error/15 border-error/30"
+                        : overallBudgetPercentage >= 80
                           ? "bg-amber-400/15 border-amber-400/30"
                           : "bg-secondary/15 border-secondary/30"
-                      }`}
+                        }`}
                     >
                       <Text
-                        className={`text-[11px] font-bold ${
-                          isBudgetOver
-                            ? "text-error"
-                            : overallBudgetPercentage >= 80
+                        className={`text-[11px] font-bold ${isBudgetOver
+                          ? "text-error"
+                          : overallBudgetPercentage >= 80
                             ? "text-amber-400"
                             : "text-secondary"
-                        }`}
+                          }`}
                       >
                         {isBudgetOver
                           ? "Over Budget"
@@ -185,12 +180,10 @@ export default function Budgets() {
                       prefix={isBudgetOver ? `-${currencySymbol}` : currencySymbol}
                       decimals={2}
                       showDecimalsSmall={true}
-                      className={`text-4xl font-extrabold tracking-tight ${
-                        isBudgetOver ? "text-error" : "text-on-surface"
-                      }`}
-                      decimalClassName={`text-2xl font-bold ml-1 ${
-                        isBudgetOver ? "text-error" : "text-secondary"
-                      }`}
+                      className={`text-4xl font-extrabold tracking-tight ${isBudgetOver ? "text-error" : "text-on-surface"
+                        }`}
+                      decimalClassName={`text-2xl font-bold ml-1 ${isBudgetOver ? "text-error" : "text-secondary"
+                        }`}
                     />
                   </View>
 
@@ -232,18 +225,16 @@ export default function Budgets() {
                       Total Savings
                     </Text>
                     <View
-                      className={`px-2.5 py-0.5 rounded-full border ${
-                        overallSavingsPercentage >= 100
-                          ? "bg-secondary/15 border-secondary/30"
-                          : "bg-primary/15 border-primary/30"
-                      }`}
+                      className={`px-2.5 py-0.5 rounded-full border ${overallSavingsPercentage >= 100
+                        ? "bg-secondary/15 border-secondary/30"
+                        : "bg-primary/15 border-primary/30"
+                        }`}
                     >
                       <Text
-                        className={`text-[11px] font-bold ${
-                          overallSavingsPercentage >= 100
-                            ? "text-secondary"
-                            : "text-primary"
-                        }`}
+                        className={`text-[11px] font-bold ${overallSavingsPercentage >= 100
+                          ? "text-secondary"
+                          : "text-primary"
+                          }`}
                       >
                         {overallSavingsPercentage >= 100
                           ? "Fully Funded"
@@ -296,14 +287,12 @@ export default function Budgets() {
             {/* Pagination Indicators */}
             <View className="flex-row items-center justify-center gap-1.5 mt-3">
               <View
-                className={`h-1.5 rounded-full ${
-                  activeHeroIndex === 0 ? "w-6 bg-primary" : "w-1.5 bg-outline-variant/40"
-                }`}
+                className={`h-1.5 rounded-full ${activeHeroIndex === 0 ? "w-6 bg-primary" : "w-1.5 bg-outline-variant/40"
+                  }`}
               />
               <View
-                className={`h-1.5 rounded-full ${
-                  activeHeroIndex === 1 ? "w-6 bg-primary" : "w-1.5 bg-outline-variant/40"
-                }`}
+                className={`h-1.5 rounded-full ${activeHeroIndex === 1 ? "w-6 bg-primary" : "w-1.5 bg-outline-variant/40"
+                  }`}
               />
             </View>
           </AnimatedBox>
@@ -351,8 +340,8 @@ export default function Budgets() {
               const ringColor = isOver
                 ? "#FFB4AB" // error / over budget
                 : isApproaching
-                ? "#FBBF24" // amber / approaching limit
-                : "#4DE082"; // secondary / on track
+                  ? "#FBBF24" // amber / approaching limit
+                  : "#4DE082"; // secondary / on track
 
               // Gifted Charts PieChart Donut Data
               let chartData;
@@ -392,13 +381,12 @@ export default function Budgets() {
                       innerCircleColor="#1C1F2A"
                       centerLabelComponent={() => (
                         <Text
-                          className={`text-[10px] font-extrabold ${
-                            isOver
-                              ? "text-error"
-                              : isApproaching
+                          className={`text-[10px] font-extrabold ${isOver
+                            ? "text-error"
+                            : isApproaching
                               ? "text-amber-400"
                               : "text-secondary"
-                          }`}
+                            }`}
                         >
                           {percentage >= 1000 ? "999%" : `${percentage.toFixed(0)}%`}
                         </Text>
@@ -500,7 +488,7 @@ export default function Budgets() {
               >
                 <MaterialIcons name="add" size={16} color="#B2C5FF" />
                 <Text className="text-xs font-bold text-primary">
-                  Set Budget Goal
+                  Set Budget
                 </Text>
               </ScaleButton>
             </View>

@@ -112,8 +112,8 @@ interface NetWorthAnalyticsCardProps {
 }
 
 const PERIODS: ("Monthly" | "Weekly" | "Trend")[] = [
-  "Weekly",
   "Monthly",
+  "Weekly",
   "Trend",
 ];
 
@@ -149,8 +149,8 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 // (e.g. 24 is full width, 48 is narrower, 64 is even narrower)
 const CARD_OUTER_HORIZONTAL_MARGIN = 30;
 
-// To adjust the padding inside the card (making the chart itself wider or narrower relative to the card), change this margin.
-const CHART_HORIZONTAL_MARGIN = 72;
+// Inner container padding is px-4 (16px left + 16px right = 32px), plus card margin (30px) = 62px
+const CHART_HORIZONTAL_MARGIN = CARD_OUTER_HORIZONTAL_MARGIN + 32;
 const DEFAULT_CONTAINER_WIDTH = SCREEN_WIDTH - CHART_HORIZONTAL_MARGIN;
 
 // To make the chart area taller or shorter, adjust this height.
@@ -212,7 +212,11 @@ export function NetWorthAnalyticsCard({
   periodLabel = "Monthly",
   onPeriodChange,
 }: NetWorthAnalyticsCardProps) {
-  const [currentPeriodIndex, setCurrentPeriodIndex] = useState(0);
+  const initialPeriodIndex = useMemo(() => {
+    const idx = PERIODS.indexOf(periodLabel as any);
+    return idx >= 0 ? idx : 0;
+  }, [periodLabel]);
+  const [currentPeriodIndex, setCurrentPeriodIndex] = useState(initialPeriodIndex);
   const selectedPeriod = PERIODS[currentPeriodIndex];
 
   // Real-time current date, month & year
@@ -266,20 +270,24 @@ export function NetWorthAnalyticsCard({
       setCurrentTrendPage(Math.floor(currentMonth / 6));
 
       if (containerWidth > 0) {
-        monthlyScrollRef.current?.scrollTo({
-          x: Math.floor(currentMonth / 4) * containerWidth,
-          animated: false,
-        });
-        weeklyScrollRef.current?.scrollTo({
-          x: currentWeekIndex * containerWidth,
-          animated: false,
-        });
-        trendScrollRef.current?.scrollTo({
-          x: Math.floor(currentMonth / 6) * containerWidth,
-          animated: false,
-        });
+        if (selectedPeriod === "Monthly") {
+          monthlyScrollRef.current?.scrollTo({
+            x: Math.floor(currentMonth / 4) * containerWidth,
+            animated: false,
+          });
+        } else if (selectedPeriod === "Weekly") {
+          weeklyScrollRef.current?.scrollTo({
+            x: currentWeekIndex * containerWidth,
+            animated: false,
+          });
+        } else if (selectedPeriod === "Trend") {
+          trendScrollRef.current?.scrollTo({
+            x: Math.floor(currentMonth / 6) * containerWidth,
+            animated: false,
+          });
+        }
       }
-    }, [currentMonth, currentWeekIndex, todayDayOfWeekIndex, containerWidth])
+    }, [currentMonth, currentWeekIndex, todayDayOfWeekIndex, containerWidth, selectedPeriod])
   );
 
   // Monthly Scroll Shared Value & Handler
@@ -673,55 +681,70 @@ export function NetWorthAnalyticsCard({
   const activeWeeklyDayPoint =
     activeWeekData?.days[selectedDayIndex] || activeWeekData?.days[0];
 
-  // Jump to active initial pages on mount
+  // Synchronize scroll position whenever selectedPeriod changes or containerWidth is measured/updated
   useEffect(() => {
-    const targetPage = Math.floor(currentMonth / 4);
-    if (targetPage > 0) {
-      const initialW = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-      monthlyScrollX.value = targetPage * initialW;
+    if (containerWidth <= 0) return;
+
+    if (selectedPeriod === "Monthly") {
+      const targetPage = Math.floor(currentMonth / 4);
+      monthlyScrollX.value = targetPage * containerWidth;
       setCurrentMonthlyPage(targetPage);
       const timer = setTimeout(() => {
-        monthlyScrollRef.current?.scrollTo({ x: targetPage * initialW, animated: false });
+        monthlyScrollRef.current?.scrollTo({
+          x: targetPage * containerWidth,
+          animated: false,
+        });
       }, 50);
       return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerWidth, currentMonth]);
-
-  useEffect(() => {
-    if (currentWeekIndex > 0) {
-      const initialW = containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH;
-      weeklyScrollX.value = currentWeekIndex * initialW;
+    } else if (selectedPeriod === "Weekly") {
+      weeklyScrollX.value = currentWeekIndex * containerWidth;
       setCurrentWeeklyPage(currentWeekIndex);
       const timer = setTimeout(() => {
         weeklyScrollRef.current?.scrollTo({
-          x: currentWeekIndex * initialW,
+          x: currentWeekIndex * containerWidth,
+          animated: false,
+        });
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (selectedPeriod === "Trend") {
+      const targetPage = Math.floor(currentMonth / 6);
+      trendScrollX.value = targetPage * containerWidth;
+      setCurrentTrendPage(targetPage);
+      const timer = setTimeout(() => {
+        trendScrollRef.current?.scrollTo({
+          x: targetPage * containerWidth,
           animated: false,
         });
       }, 50);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerWidth, currentWeekIndex]);
+  }, [selectedPeriod, containerWidth, currentMonth, currentWeekIndex]);
 
   // Layout Handler
   const onLayoutContainer = (e: LayoutChangeEvent) => {
     const width = e.nativeEvent.layout.width;
     if (width > 0 && width !== containerWidth) {
       setContainerWidth(width);
-      const targetPage = Math.floor(currentMonth / 4);
-      if (targetPage > 0) {
+      if (selectedPeriod === "Monthly") {
+        const targetPage = Math.floor(currentMonth / 4);
         monthlyScrollX.value = targetPage * width;
         monthlyScrollRef.current?.scrollTo({ x: targetPage * width, animated: false });
         setCurrentMonthlyPage(targetPage);
-      }
-      if (currentWeekIndex > 0) {
+      } else if (selectedPeriod === "Weekly") {
         weeklyScrollX.value = currentWeekIndex * width;
         weeklyScrollRef.current?.scrollTo({
           x: currentWeekIndex * width,
           animated: false,
         });
         setCurrentWeeklyPage(currentWeekIndex);
+      } else if (selectedPeriod === "Trend") {
+        const targetPage = Math.floor(currentMonth / 6);
+        trendScrollX.value = targetPage * width;
+        trendScrollRef.current?.scrollTo({
+          x: targetPage * width,
+          animated: false,
+        });
+        setCurrentTrendPage(targetPage);
       }
     }
   };
@@ -758,31 +781,13 @@ export function NetWorthAnalyticsCard({
       setSelectedMonthIndex(currentMonth);
       const targetPage = Math.floor(currentMonth / 4);
       setCurrentMonthlyPage(targetPage);
-      if (containerWidth > 0) {
-        monthlyScrollRef.current?.scrollTo({
-          x: targetPage * containerWidth,
-          animated: false,
-        });
-      }
     } else if (nextPeriod === "Weekly") {
       setSelectedWeekIndex(currentWeekIndex);
       setSelectedDayIndex(todayDayOfWeekIndex);
-      if (containerWidth > 0) {
-        weeklyScrollRef.current?.scrollTo({
-          x: currentWeekIndex * containerWidth,
-          animated: false,
-        });
-      }
     } else if (nextPeriod === "Trend") {
       setSelectedMonthIndex(currentMonth);
       const targetPage = Math.floor(currentMonth / 6);
       setCurrentTrendPage(targetPage);
-      if (containerWidth > 0) {
-        trendScrollRef.current?.scrollTo({
-          x: targetPage * containerWidth,
-          animated: false,
-        });
-      }
     }
   };
 
@@ -1182,10 +1187,10 @@ export function NetWorthAnalyticsCard({
           </View>
         </View>
 
-        {/* Middle Area: 6-Month Snappable Bar Chart OR 4-Week Snappable Curve Graphs */}
+        {/* Middle Area: 4-Month Snappable Curve Graphs OR 4-Week Snappable Curve Graphs */}
         <View
-          className="relative mt-2"
-          style={{ height: CHART_HEIGHT }}
+          className="relative mt-2 overflow-hidden"
+          style={{ height: CHART_HEIGHT, width: containerWidth }}
           onLayout={onLayoutContainer}
         >
           {selectedPeriod === "Weekly" ? (
@@ -1199,16 +1204,13 @@ export function NetWorthAnalyticsCard({
               onScroll={weeklyScrollHandler}
               scrollEventThrottle={16}
               onMomentumScrollEnd={handleWeeklyMomentumScrollEnd}
-              decelerationRate="fast"
-              snapToInterval={containerWidth}
-              snapToAlignment="start"
               contentOffset={{
                 x:
                   currentWeekIndex *
                   (containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH),
                 y: 0,
               }}
-              style={{ width: containerWidth, height: CHART_HEIGHT }}
+              style={{ width: containerWidth, height: CHART_HEIGHT, overflow: "hidden" }}
               contentContainerStyle={{
                 width: containerWidth * monthWeeksData.length,
                 height: CHART_HEIGHT,
@@ -1218,7 +1220,7 @@ export function NetWorthAnalyticsCard({
                 <View
                   key={`week-page-${wIdx}`}
                   style={{ width: containerWidth, height: CHART_HEIGHT }}
-                  className="justify-end px-1 relative"
+                  className="justify-end relative"
                 >
                   {/* Tooltip rendered if selected day is in this week */}
                   {selectedWeekIndex === wIdx && renderWeeklyTooltip(week)}
@@ -1384,7 +1386,7 @@ export function NetWorthAnalyticsCard({
               ))}
             </Animated.ScrollView>
           ) : selectedPeriod === "Monthly" ? (
-            /* 12-Month Horizontal ScrollView with 6-Month Snapping (Monthly Mode) */
+            /* 12-Month Horizontal ScrollView with 4-Month Snapping (Monthly Mode) */
             <Animated.ScrollView
               key="monthly-scroll"
               ref={monthlyScrollRef}
@@ -1394,23 +1396,20 @@ export function NetWorthAnalyticsCard({
               onScroll={monthlyScrollHandler}
               scrollEventThrottle={16}
               onMomentumScrollEnd={handleMonthlyMomentumScrollEnd}
-              decelerationRate="fast"
-              snapToInterval={containerWidth}
-              snapToAlignment="start"
               contentOffset={{
                 x:
                   Math.floor(currentMonth / 4) *
                   (containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH),
                 y: 0,
               }}
-              style={{ width: containerWidth, height: CHART_HEIGHT }}
+              style={{ width: containerWidth, height: CHART_HEIGHT, overflow: "hidden" }}
               contentContainerStyle={{ width: containerWidth * 3, height: CHART_HEIGHT }}
             >
               {monthlyPages.map((page, pIdx) => (
                 <View
                   key={`monthly-page-${pIdx}`}
                   style={{ width: containerWidth, height: CHART_HEIGHT }}
-                  className="justify-end px-1 relative"
+                  className="justify-end relative"
                 >
                   {/* Snapshot Tooltip attached to active page */}
                   {Math.floor(selectedMonthIndex / 4) === pIdx && renderMonthlyTooltip(page)}
@@ -1582,23 +1581,20 @@ export function NetWorthAnalyticsCard({
               onScroll={trendScrollHandler}
               scrollEventThrottle={16}
               onMomentumScrollEnd={handleTrendMomentumScrollEnd}
-              decelerationRate="fast"
-              snapToInterval={containerWidth}
-              snapToAlignment="start"
               contentOffset={{
                 x:
                   Math.floor(currentMonth / 6) *
                   (containerWidth > 0 ? containerWidth : DEFAULT_CONTAINER_WIDTH),
                 y: 0,
               }}
-              style={{ width: containerWidth, height: CHART_HEIGHT }}
+              style={{ width: containerWidth, height: CHART_HEIGHT, overflow: "hidden" }}
               contentContainerStyle={{ width: containerWidth * 2, height: CHART_HEIGHT }}
             >
               {trendPages.map((page, pIdx) => (
                 <View
                   key={`trend-page-${pIdx}`}
                   style={{ width: containerWidth, height: CHART_HEIGHT }}
-                  className="justify-end px-1 relative"
+                  className="justify-end relative"
                 >
                   {/* Tooltip */}
                   {Math.floor(selectedMonthIndex / 6) === pIdx && (

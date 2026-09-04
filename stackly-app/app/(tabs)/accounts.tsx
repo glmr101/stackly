@@ -125,8 +125,8 @@ export default function Accounts() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <AnimatedBox delay={0} className="h-16 px-5 flex-row items-center justify-between z-50">
-        <Text className="text-2xl font-extrabold text-on-surface tracking-tight">
-          Accounts & Cards
+        <Text className="text-4xl font-extrabold text-on-surface tracking-tight">
+          Accounts
         </Text>
       </AnimatedBox>
 
@@ -220,8 +220,8 @@ export default function Accounts() {
                   activeScale={0.92}
                   onPress={() => setSelectedFilter(f.value)}
                   className={`px-4 py-2 rounded-full border ${isSelected
-                      ? "bg-primary border-primary"
-                      : "bg-surface-container border-outline-variant/30"
+                    ? "bg-primary border-primary"
+                    : "bg-surface-container border-outline-variant/30"
                     }`}
                 >
                   <Text
@@ -329,7 +329,7 @@ export default function Accounts() {
                   >
                     <MaterialIcons name="add" size={18} color="#002C72" />
                     <Text className="text-xs font-extrabold text-on-primary">
-                      + Add First Account
+                      Add Your First Account
                     </Text>
                   </ScaleButton>
                 </Link>
