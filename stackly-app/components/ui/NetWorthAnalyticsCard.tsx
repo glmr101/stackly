@@ -524,7 +524,7 @@ export function NetWorthAnalyticsCard({
       incomeRatio: m.income > 0 ? Math.max(0.12, Math.min(1.0, m.income / maxActivity)) : 0.05,
       expenseRatio: m.expenses > 0 ? Math.max(0.12, Math.min(1.0, m.expenses / maxActivity)) : 0.05,
     }));
-  }, [transactions, currentMonth, currentYear]);
+  }, [accounts, transactions, currentMonth, currentYear]);
 
   // Generate 4 Weeks of Data for the active month
   const monthWeeksData: WeekData[] = useMemo(() => {

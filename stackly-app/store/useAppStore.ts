@@ -16,7 +16,7 @@ interface AppState {
   region: Region;
   biometricLockEnabled: boolean;
 
-  addAccount: (account: Omit<Account, 'id'>) => void;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt'> & { createdAt?: string }) => void;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id'>>) => void;
   deleteAccount: (id: string) => void;
   lastDeletedAccount: Account | null;
@@ -75,7 +75,11 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           accounts: [
             ...state.accounts,
-            { ...account, id: `a${Date.now()}`, createdAt: new Date().toISOString() },
+            {
+              ...account,
+              id: `a${Date.now()}`,
+              createdAt: account.createdAt || new Date().toISOString(),
+            },
           ],
         })),
 
@@ -134,9 +138,13 @@ export const useAppStore = create<AppState>()(
           const updatedAccounts = state.accounts.map((acc) => {
             let balance = acc.balance;
 
-            // Handle from account (expense or transfer sender)
+            // Handle from account (expense, savings, or transfer sender)
             if (acc.id === transaction.accountId) {
-              if (transaction.type === 'expense' || transaction.type === 'transfer') {
+              if (
+                transaction.type === 'expense' ||
+                transaction.type === 'transfer' ||
+                transaction.type === 'savings'
+              ) {
                 balance -= transaction.amount;
               } else if (transaction.type === 'income') {
                 balance += transaction.amount;
@@ -234,6 +242,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           categories: state.categories.filter((cat) => cat.id !== id),
           budgetGoals: state.budgetGoals.filter((bg) => bg.categoryId !== id),
+          transactions: state.transactions.map((tx) =>
+            tx.categoryId === id ? { ...tx, categoryId: undefined } : tx
+          ),
         })),
 
       setBudgetGoal: (goal) =>
