@@ -8,7 +8,7 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from '@/hooks/useIsFocused';
 import { useSegments } from 'expo-router';
 
 export interface AnimatedBoxProps extends ViewProps {

@@ -18,7 +18,6 @@ export function useGoogleAuth() {
 
   useEffect(() => {
     if (response?.type === "success") {
-      setLoading(true);
       setError("");
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
@@ -30,12 +29,14 @@ export function useGoogleAuth() {
         })
         .finally(() => setLoading(false));
     } else if (response?.type === "error") {
-      setError(response.error?.message || "Google sign-in failed");
+      setError((response.error as any)?.message || "Google sign-in failed");
+      setLoading(false);
     }
   }, [response]);
 
   const signInWithGoogle = async () => {
     setError("");
+    setLoading(true);
     await promptAsync();
   };
 

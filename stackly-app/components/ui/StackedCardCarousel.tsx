@@ -16,7 +16,7 @@ import Animated, {
   Extrapolation,
   type SharedValue,
 } from 'react-native-reanimated';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from '@/hooks/useIsFocused';
 import { useRouter } from 'expo-router';
 import { MAX_ACCOUNT_COUNT } from '@/constants';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     color: '#B2C5FF',
   },
   frostedBlurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 19, 29, 0.55)',
     borderRadius: 22,
     borderWidth: 1,

@@ -38,6 +38,31 @@ export function UndoToast({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const clearTimers = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
+  const handleDismiss = () => {
+    clearTimers();
+    translateY.value = withTiming(80, { duration: 200 });
+    opacity.value = withTiming(0, { duration: 200 }, (finished) => {
+      if (finished) {
+        runOnJS(onDismiss)();
+      }
+    });
+  };
+
+  const handleUndoPress = () => {
+    clearTimers();
+    translateY.value = withTiming(80, { duration: 200 });
+    opacity.value = withTiming(0, { duration: 200 }, (finished) => {
+      if (finished) {
+        runOnJS(onUndo)();
+      }
+    });
+  };
+
   useEffect(() => {
     if (visible) {
       const initialSeconds = Math.ceil(duration / 1000);
@@ -86,31 +111,6 @@ export function UndoToast({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, duration]);
-
-  const clearTimers = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  };
-
-  const handleDismiss = () => {
-    clearTimers();
-    translateY.value = withTiming(80, { duration: 200 });
-    opacity.value = withTiming(0, { duration: 200 }, (finished) => {
-      if (finished) {
-        runOnJS(onDismiss)();
-      }
-    });
-  };
-
-  const handleUndoPress = () => {
-    clearTimers();
-    translateY.value = withTiming(80, { duration: 200 });
-    opacity.value = withTiming(0, { duration: 200 }, (finished) => {
-      if (finished) {
-        runOnJS(onUndo)();
-      }
-    });
-  };
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],

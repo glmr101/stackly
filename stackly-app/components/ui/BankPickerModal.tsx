@@ -13,7 +13,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { PHILIPPINE_BANKS, POPULAR_PHILIPPINE_BANKS, PhilippineBank } from '@/data/philippineBanks';
 import { ScaleButton } from '@/components/ui/ScaleButton';
-import { GrabHandle } from '@/components/ui/GrabHandle';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 
 interface BankPickerModalProps {
   visible: boolean;
@@ -66,24 +66,8 @@ export function BankPickerModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      statusBarTranslucent={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        {/* Backdrop pressable */}
-        <Pressable style={styles.backdrop} onPress={onClose} />
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-          style={styles.keyboardContainer}
-        >
-          <View style={styles.sheetContainer} className="bg-surface border-t border-outline-variant/30">
-            <GrabHandle />
+    <BottomSheet visible={visible} onClose={onClose} height="85%">
+      <View className="flex-1">
 
             {/* Modal Header */}
             <View className="px-5 pb-3 pt-1 flex-row items-center justify-between border-b border-outline-variant/20">
@@ -247,39 +231,11 @@ export function BankPickerModal({
                 )}
               </View>
             </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'transparent',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  keyboardContainer: {
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-  sheetContainer: {
-    height: '85%',
-    maxHeight: '90%',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 20,
-  },
-});
+const styles = StyleSheet.create({});
 
 export default BankPickerModal;

@@ -48,6 +48,7 @@ export type Subscription = {
   active: boolean;
   color: string;
   dueDay?: number;
+  accountId?: string;
 };
 
 export type BudgetGoal = {

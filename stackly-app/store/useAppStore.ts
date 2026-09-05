@@ -24,6 +24,13 @@ interface AppState {
   restoreLastDeletedAccount: () => void;
   clearLastDeletedAccount: () => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id'>>) => void;
+  deleteTransaction: (id: string) => void;
+  lastDeletedTransaction: Transaction | null;
+  restoreTransaction: (transaction: Transaction) => void;
+  restoreLastDeletedTransaction: () => void;
+  clearLastDeletedTransaction: () => void;
+
   lastDeletedSubscription: Subscription | null;
   addSubscription: (subscription: Omit<Subscription, 'id'>) => void;
   updateSubscription: (id: string, updates: Partial<Omit<Subscription, 'id'>>) => void;
@@ -32,6 +39,7 @@ interface AppState {
   restoreLastDeletedSubscription: () => void;
   clearLastDeletedSubscription: () => void;
   toggleSubscription: (id: string) => void;
+  paySubscription: (id: string) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;
@@ -68,6 +76,7 @@ export const useAppStore = create<AppState>()(
       currency: DEFAULT_CURRENCY,
       region: DEFAULT_REGION,
       lastDeletedAccount: null,
+      lastDeletedTransaction: null,
       lastDeletedSubscription: null,
       biometricLockEnabled: false,
 
@@ -96,6 +105,8 @@ export const useAppStore = create<AppState>()(
           return {
             lastDeletedAccount: accToDelete,
             accounts: state.accounts.filter((acc) => acc.id !== id),
+            transactions: state.transactions.filter((tx) => tx.accountId !== id && tx.destinationAccountId !== id),
+            subscriptions: state.subscriptions.filter((sub) => sub.accountId !== id),
           };
         }),
 
@@ -165,6 +176,123 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
+      updateTransaction: (id, updates) =>
+        set((state) => {
+          const oldTx = state.transactions.find((t) => t.id === id);
+          if (!oldTx) return state;
+
+          const updatedTx = { ...oldTx, ...updates };
+
+          let updatedAccounts = [...state.accounts];
+
+          // 1. Reverse oldTx
+          updatedAccounts = updatedAccounts.map((acc) => {
+            let balance = acc.balance;
+            if (acc.id === oldTx.accountId) {
+              if (oldTx.type === 'expense' || oldTx.type === 'transfer' || oldTx.type === 'savings') balance += oldTx.amount;
+              else if (oldTx.type === 'income') balance -= oldTx.amount;
+            }
+            if (oldTx.type === 'transfer' && oldTx.destinationAccountId && acc.id === oldTx.destinationAccountId) {
+              balance -= oldTx.amount;
+            }
+            return { ...acc, balance };
+          });
+
+          // 2. Apply updatedTx
+          updatedAccounts = updatedAccounts.map((acc) => {
+            let balance = acc.balance;
+            if (acc.id === updatedTx.accountId) {
+              if (updatedTx.type === 'expense' || updatedTx.type === 'transfer' || updatedTx.type === 'savings') balance -= updatedTx.amount;
+              else if (updatedTx.type === 'income') balance += updatedTx.amount;
+            }
+            if (updatedTx.type === 'transfer' && updatedTx.destinationAccountId && acc.id === updatedTx.destinationAccountId) {
+              balance += updatedTx.amount;
+            }
+            return { ...acc, balance };
+          });
+
+          return {
+            transactions: state.transactions.map((t) => (t.id === id ? updatedTx : t)),
+            accounts: updatedAccounts,
+          };
+        }),
+
+      deleteTransaction: (id) =>
+        set((state) => {
+          const txToDelete = state.transactions.find((t) => t.id === id);
+          if (!txToDelete) return state;
+
+          let updatedAccounts = state.accounts.map((acc) => {
+            let balance = acc.balance;
+            if (acc.id === txToDelete.accountId) {
+              if (txToDelete.type === 'expense' || txToDelete.type === 'transfer' || txToDelete.type === 'savings') balance += txToDelete.amount;
+              else if (txToDelete.type === 'income') balance -= txToDelete.amount;
+            }
+            if (txToDelete.type === 'transfer' && txToDelete.destinationAccountId && acc.id === txToDelete.destinationAccountId) {
+              balance -= txToDelete.amount;
+            }
+            return { ...acc, balance };
+          });
+
+          return {
+            lastDeletedTransaction: txToDelete,
+            transactions: state.transactions.filter((t) => t.id !== id),
+            accounts: updatedAccounts,
+          };
+        }),
+
+      restoreTransaction: (transaction) =>
+        set((state) => {
+          const exists = state.transactions.some((t) => t.id === transaction.id);
+          if (exists) return state;
+
+          let updatedAccounts = state.accounts.map((acc) => {
+            let balance = acc.balance;
+            if (acc.id === transaction.accountId) {
+              if (transaction.type === 'expense' || transaction.type === 'transfer' || transaction.type === 'savings') balance -= transaction.amount;
+              else if (transaction.type === 'income') balance += transaction.amount;
+            }
+            if (transaction.type === 'transfer' && transaction.destinationAccountId && acc.id === transaction.destinationAccountId) {
+              balance += transaction.amount;
+            }
+            return { ...acc, balance };
+          });
+
+          return {
+            transactions: [transaction, ...state.transactions],
+            accounts: updatedAccounts,
+          };
+        }),
+
+      restoreLastDeletedTransaction: () =>
+        set((state) => {
+          if (!state.lastDeletedTransaction) return state;
+          const exists = state.transactions.some((t) => t.id === state.lastDeletedTransaction!.id);
+          if (exists) return { lastDeletedTransaction: null };
+
+          const tx = state.lastDeletedTransaction;
+          let updatedAccounts = state.accounts.map((acc) => {
+            let balance = acc.balance;
+            if (acc.id === tx.accountId) {
+              if (tx.type === 'expense' || tx.type === 'transfer' || tx.type === 'savings') balance -= tx.amount;
+              else if (tx.type === 'income') balance += tx.amount;
+            }
+            if (tx.type === 'transfer' && tx.destinationAccountId && acc.id === tx.destinationAccountId) {
+              balance += tx.amount;
+            }
+            return { ...acc, balance };
+          });
+
+          return {
+            transactions: [tx, ...state.transactions],
+            accounts: updatedAccounts,
+            lastDeletedTransaction: null,
+          };
+        }),
+
+      clearLastDeletedTransaction: () =>
+        set({ lastDeletedTransaction: null }),
+
       addSubscription: (subscription) =>
         set((state) => ({
           subscriptions: [
@@ -222,6 +350,42 @@ export const useAppStore = create<AppState>()(
             sub.id === id ? { ...sub, active: !sub.active } : sub
           ),
         })),
+        
+      paySubscription: (id) => 
+        set((state) => {
+          const sub = state.subscriptions.find(s => s.id === id);
+          if (!sub || !sub.accountId || !sub.active) return state;
+
+          const newTransaction: Transaction = {
+            id: `t${Date.now()}`,
+            type: 'expense',
+            amount: sub.amount,
+            payee: sub.name,
+            date: new Date().toISOString(),
+            accountId: sub.accountId,
+            categoryId: sub.categoryId,
+            note: `Auto-paid subscription: ${sub.name}`,
+          };
+
+          const updatedAccounts = state.accounts.map((acc) => 
+            acc.id === sub.accountId ? { ...acc, balance: acc.balance - sub.amount } : acc
+          );
+
+          let nextDate = new Date(sub.nextChargeDate);
+          if (sub.billingCycle === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+          else if (sub.billingCycle === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
+          else if (sub.billingCycle === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+
+          const updatedSubscriptions = state.subscriptions.map(s => 
+            s.id === id ? { ...s, nextChargeDate: nextDate.toISOString() } : s
+          );
+
+          return {
+            transactions: [newTransaction, ...state.transactions],
+            accounts: updatedAccounts,
+            subscriptions: updatedSubscriptions
+          };
+        }),
 
       addCategory: (category) =>
         set((state) => ({

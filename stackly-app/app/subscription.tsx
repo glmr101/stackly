@@ -148,7 +148,7 @@ export default function SubscriptionScreen() {
           <View className="h-52 w-full relative">
             <Image
               source={images.subscriptionHero}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
             {/* Ambient Multi-Stop Gradient Overlay */}
@@ -397,7 +397,7 @@ export default function SubscriptionScreen() {
 
 const styles = StyleSheet.create({
   heroOverlayGradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(9, 11, 16, 0.4)",
   },
   planCard: {

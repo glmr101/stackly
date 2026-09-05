@@ -111,9 +111,9 @@ interface NetWorthAnalyticsCardProps {
   onPeriodChange?: (period: "Monthly" | "Weekly" | "Trend") => void;
 }
 
-const PERIODS: ("Monthly" | "Weekly" | "Trend")[] = [
-  "Monthly",
+const PERIODS: ("Weekly" | "Monthly" | "Trend")[] = [
   "Weekly",
+  "Monthly",
   "Trend",
 ];
 
@@ -209,7 +209,7 @@ export function NetWorthAnalyticsCard({
   transactions = [],
   accounts = [],
   title = "Total Net Worth",
-  periodLabel = "Monthly",
+  periodLabel = "Weekly",
   onPeriodChange,
 }: NetWorthAnalyticsCardProps) {
   const initialPeriodIndex = useMemo(() => {
@@ -909,9 +909,9 @@ export function NetWorthAnalyticsCard({
     const monthData = monthlyChartData[absIdx];
     if (!monthData) return { left: 0, top: 0, width: TOOLTIP_WIDTH };
 
-    const val = Math.min(monthData.netWorth, 100000);
+    const val = Math.min(monthData.netWorth, 70000);
     const maxBarHeight = (CHART_HEIGHT - 32) - 40;
-    const barHeight = Math.max(12, (val / 100000) * maxBarHeight);
+    const barHeight = Math.max(12, (val / 70000) * maxBarHeight);
     const barY = (CHART_HEIGHT - 32) - barHeight;
 
     let left = centerX + BADGE_OFFSET;
@@ -1101,7 +1101,7 @@ export function NetWorthAnalyticsCard({
       style={{ marginHorizontal: CARD_OUTER_HORIZONTAL_MARGIN / 2 }}
     >
       {/* 1. Ambient Top-Left Warm Bluish Atmospheric Glow */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Svg height="100%" width="100%">
           <Defs>
             <RadialGradient
@@ -1229,7 +1229,7 @@ export function NetWorthAnalyticsCard({
                   <Svg
                     width={containerWidth}
                     height={CHART_HEIGHT}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   >
                     <Defs>
@@ -1418,7 +1418,7 @@ export function NetWorthAnalyticsCard({
                   <Svg
                     width={containerWidth}
                     height={CHART_HEIGHT}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   >
                     <Defs>
@@ -1617,7 +1617,7 @@ export function NetWorthAnalyticsCard({
                   <Svg
                     width={containerWidth}
                     height={CHART_HEIGHT}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   >
                     <Defs>
@@ -1643,10 +1643,10 @@ export function NetWorthAnalyticsCard({
                     </Defs>
 
                     {/* Background Lines and Y-Axis Labels */}
-                    {[100000, 75000, 50000, 25000, 0].map((val) => {
+                    {[70000, 52500, 35000, 17500, 0].map((val) => {
                       const maxBarHeight = (CHART_HEIGHT - 32) - 40;
                       // Compress the Y-axis grid downwards by 15px so bars can visually exceed it
-                      const y = (CHART_HEIGHT - 32) - (val / 100000) * (maxBarHeight - 15);
+                      const y = (CHART_HEIGHT - 32) - (val / 70000) * (maxBarHeight - 15);
                       return (
                         <React.Fragment key={`y-axis-${val}`}>
                           <SvgText x={22} y={y + 3} fill="#8D909F" fontSize={9} textAnchor="end" fontWeight="500">
@@ -1661,10 +1661,10 @@ export function NetWorthAnalyticsCard({
                     {page.months.map((item, idx) => {
                       const absoluteMonthIndex = pIdx * 6 + idx;
                       const monthData = monthlyChartData[absoluteMonthIndex];
-                      const val = monthData ? Math.min(monthData.netWorth, 100000) : 0;
+                      const val = monthData ? Math.min(monthData.netWorth, 70000) : 0;
 
                       const maxBarHeight = (CHART_HEIGHT - 32) - 40;
-                      const barHeight = Math.max(12, (val / 100000) * maxBarHeight);
+                      const barHeight = Math.max(12, (val / 70000) * maxBarHeight);
 
                       const leftPad = 25;
                       const rightPad = 6;
@@ -1729,7 +1729,7 @@ export function NetWorthAnalyticsCard({
                       className="absolute z-20 items-center justify-center"
                       style={{
                         left: (25 + ((selectedMonthIndex % 6) + 0.5) * ((containerWidth - 31) / 6)) - 12,
-                        top: ((CHART_HEIGHT - 32) - Math.max(12, (Math.min(monthlyChartData[selectedMonthIndex]?.netWorth || 0, 100000) / 100000) * ((CHART_HEIGHT - 32) - 40))) - 12,
+                        top: ((CHART_HEIGHT - 32) - Math.max(12, (Math.min(monthlyChartData[selectedMonthIndex]?.netWorth || 0, 70000) / 70000) * ((CHART_HEIGHT - 32) - 40))) - 12,
                         width: 24,
                         height: 24,
                       }}

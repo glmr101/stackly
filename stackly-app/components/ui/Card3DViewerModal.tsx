@@ -511,9 +511,10 @@ export function Card3DViewerModal({
         <GestureDetector gesture={singleTapGesture}>
           <Animated.View style={[styles.backdropFill, animatedBackdropStyle]}>
             <BlurView
-              intensity={70}
+              intensity={90}
               tint="dark"
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
+              experimentalBlurMethod="dimezisBlurView"
             />
             <View style={styles.frostedTint} pointerEvents="none" />
           </Animated.View>
@@ -687,11 +688,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backdropFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
   },
   frostedTint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10, 14, 23, 0.28)', // Soft translucent tint (keeps underlying dashboard vibrant and visible)
   },
   cardWrapper: {

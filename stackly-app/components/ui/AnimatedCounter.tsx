@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextProps, StyleProp, TextStyle, View } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from '@/hooks/useIsFocused';
 import { useSegments } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 
